@@ -3,11 +3,12 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerAllIpc } from './ipc/index.ipc'
+import { checkForUpdates, setupAutoUpdater } from './updater'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    title:'123',
+    title: '123',
     width: 900,
     height: 670,
     show: false,
@@ -55,6 +56,7 @@ protocol.registerSchemesAsPrivileged([
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  setupAutoUpdater()
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -72,21 +74,26 @@ app.whenReady().then(() => {
   registerAllIpc()
 
   protocol.registerFileProtocol(protocolName, (request, callback) => {
-  try {
-    const url = new URL(request.url)
-    const filePath = url.searchParams.get('path')
+    try {
+      const url = new URL(request.url)
+      const filePath = url.searchParams.get('path')
 
-    if (!filePath) {
-      return callback({ error: -6 }) // FILE_NOT_FOUND
+      if (!filePath) {
+        return callback({ error: -6 }) // FILE_NOT_FOUND
+      }
+
+      callback({ path: filePath })
+    } catch (error) {
+      console.error('Failed to load local image:', error)
+      callback({ error: -2 }) // FAILED
     }
-
-    callback({ path: filePath })
-  } catch (error) {
-    console.error('Failed to load local image:', error)
-    callback({ error: -2 }) // FAILED
-  }
-})
+  })
   createWindow()
+
+  // 等 App 啟動後再檢查更新
+  setTimeout(() => {
+    void checkForUpdates()
+  }, 3000)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
