@@ -8,7 +8,8 @@ import { GitImagePaths } from 'src/main/type/git'
 // Custom APIs for renderer
 enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
-  SELECT_IMAGES = 'select-images'
+  SELECT_IMAGES = 'select-images',
+  OPEN_EXTERNAL = 'open-external'
 }
 
 enum ProjectIPC {
@@ -39,6 +40,7 @@ const api = {
     ipcRenderer.invoke(IndexIPC.SELECT_DIRECTORY, defaultPath),
   selectImages: (defaultPath?: string): Promise<string[] | null> =>
     ipcRenderer.invoke(IndexIPC.SELECT_IMAGES, defaultPath),
+  openExternal: (url: string) => ipcRenderer.invoke(IndexIPC.OPEN_EXTERNAL, url),
   project: {
     addNewProject: (project: ProjectInfo) =>
       ipcRenderer.invoke(ProjectIPC.ADD_NEW_PROJECT, project),

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
 import { selectDirectory, selectImages } from '../services/setting.service'
 import { registerProjectIpc } from './project.ipc'
 import { registerImageIpc } from './image.ipc'
@@ -6,7 +6,8 @@ import { registerGitIpc } from './git.ipc'
 
 export enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
-  SELECT_IMAGES = 'select-images'
+  SELECT_IMAGES = 'select-images',
+  OPEN_EXTERNAL = 'open-external'
 }
 
 export enum ProjectIPC {
@@ -39,6 +40,9 @@ const registerIndexIpc = (): void => {
   ipcMain.handle(IndexIPC.SELECT_IMAGES, async (_, defaultPath) => {
     return await selectImages(defaultPath)
   })
+  ipcMain.handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
+  await shell.openExternal(url)
+})
 }
 
 export const registerAllIpc = (): void => {

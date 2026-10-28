@@ -1,5 +1,5 @@
 appId: com.changeimg.app
-productName: changeimggui
+productName: 盤口工具
 directories:
   buildResources: build
 files:
@@ -42,5 +42,6 @@ publish:
   provider: github
   owner: ZiJson
   repo: changeImgGUI
+  releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

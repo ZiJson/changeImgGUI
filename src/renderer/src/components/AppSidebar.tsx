@@ -12,6 +12,7 @@ import {
 import { route } from '@renderer/route'
 import { type Icon } from '@tabler/icons-react'
 import { Link } from 'react-router'
+import packageJson from '../../../../package.json'
 
 export const data = {
   navMain: route
@@ -24,7 +25,7 @@ export function AppSidebar() {
       <SidebarContent>
         <NavMain items={data.navMain.filter((item) => !!item.title)} />
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter><p className='text-muted-foreground text-xs whitespace-nowrap'>v {packageJson.version}</p></SidebarFooter>
     </Sidebar>
   )
 }
