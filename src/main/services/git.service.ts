@@ -1,29 +1,105 @@
-import { simpleGit } from 'simple-git'
-import { GitImagePaths } from '../type/git'
+import { simpleGit} from 'simple-git'
+import { GitImagePaths, GitStatus } from '../type/git'
 import path from 'path'
 import fs from 'fs/promises'
 import { app } from 'electron'
 import { spawn } from 'child_process'
 import sharp from 'sharp'
 
-export const getGitStatus = async (projectPath: string) => {
-  const git = simpleGit(projectPath)
+export const isWslPath = (projectPath: string): boolean => {
+  return /^\\\\wsl(?:\.localhost|\\$)\\/i.test(
+    projectPath.replaceAll('/', '\\')
+  )
+}
 
-  const status = await git.status()
+export const toWslLinuxPath = (projectPath: string) => {
+  const normalized = projectPath.replaceAll('/', '\\')
+  const match = normalized.match(
+    /^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\(.*)$/i
+  )
+
+  if (!match) {
+    throw new Error(`Invalid WSL path: ${projectPath}`)
+  }
 
   return {
-    current: status.current,
-    tracking: status.tracking,
-    isClean: status.isClean(),
-    modified: status.modified,
-    staged: status.staged,
-    not_added: status.not_added,
-    deleted: status.deleted,
-    renamed: status.renamed,
-    conflicted: status.conflicted
+    distro: match[1],
+    linuxPath: `/${match[2].replaceAll('\\', '/')}`
   }
 }
 
+const runWslGit = (
+  distro: string,
+  projectPath: string,
+  args: string[]
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const child = spawn('wsl.exe', [
+      '-d',
+      distro,
+      '--',
+      'git',
+      '-C',
+      projectPath,
+      ...args
+    ], {
+      windowsHide: true
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+
+    child.stdout.on('data', (data: string) => {
+      stdout += data
+    })
+
+    child.stderr.on('data', (data: string) => {
+      stderr += data
+    })
+
+    child.on('error', reject)
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout)
+      } else {
+        reject(new Error(stderr || `Git exited with code ${code}`))
+      }
+    })
+  })
+}
+
+export const getGitStatus = async (projectPath: string) => {
+  if (!isWslPath(projectPath)) {
+    const git = simpleGit(projectPath)
+    const status = await git.status()
+
+    return {
+      current: status.current,
+      tracking: status.tracking,
+      isClean: status.isClean(),
+      modified: status.modified,
+      staged: status.staged,
+      not_added: status.not_added,
+      deleted: status.deleted,
+      renamed: status.renamed,
+      conflicted: status.conflicted
+    }
+  }
+
+  const { distro, linuxPath } = toWslLinuxPath(projectPath)
+
+  const output = await runWslGit(distro, linuxPath, [
+    'status',
+    '--porcelain=v1',
+    '-b'
+  ])
+
+  return parseGitStatus(output)
+}
 const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     const child = spawn('git', ['show', `HEAD:${relativePath}`], {
@@ -112,4 +188,65 @@ export const getGitImagePaths = async (
       size: buffer.length
     }
   }
+}
+
+
+const parseGitStatus = (output: string): GitStatus => {
+  const lines = output.split('\n').filter(Boolean)
+  const branchLine = lines.shift() ?? ''
+
+  const current =
+    branchLine.match(/^## (.+?)(?:\.\.\.|$)/)?.[1] ?? null
+
+  const tracking =
+    branchLine.match(/\.\.\.(\S+)/)?.[1] ?? null
+
+  const result: GitStatus = {
+    current,
+    tracking,
+    isClean: lines.length === 0,
+    modified: [],
+    staged: [],
+    not_added: [],
+    deleted: [],
+    renamed: [],
+    conflicted: []
+  }
+
+  for (const line of lines) {
+    const indexStatus = line[0]
+    const workTreeStatus = line[1]
+    const filePath = line.slice(3)
+
+    if (indexStatus === '?' && workTreeStatus === '?') {
+      result.not_added.push(filePath)
+      continue
+    }
+
+    if (indexStatus === 'U' || workTreeStatus === 'U' ||
+        (indexStatus === 'A' && workTreeStatus === 'A') ||
+        (indexStatus === 'D' && workTreeStatus === 'D')) {
+      result.conflicted.push(filePath)
+      continue
+    }
+
+    if (indexStatus === 'R' || workTreeStatus === 'R') {
+      result.renamed.push(filePath)
+    }
+
+    if (indexStatus === 'D' || workTreeStatus === 'D') {
+      result.deleted.push(filePath)
+    }
+
+    if (indexStatus === 'M' || indexStatus === 'A' ||
+        indexStatus === 'R' || indexStatus === 'C') {
+      result.staged.push(filePath)
+    }
+
+    if (workTreeStatus === 'M') {
+      result.modified.push(filePath)
+    }
+  }
+
+  return result
 }

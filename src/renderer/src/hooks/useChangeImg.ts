@@ -41,7 +41,7 @@ export const useChangeImg = () => {
       }),
     enabled: !!project && !!selectedCompanyFolder && !!newImagePaths.length
   })
-  console.log(newImagePaths, checkResult)
+  
   const selectImages = async () => {
     const result = await window.api.selectImages()
 

@@ -419,6 +419,7 @@ export const convertImages = async (imagePairs: ImagePathPair[]): Promise<ImageP
 }
 
 export const replaceImages = async (imagePairs: ImagePathPair[]): Promise<ImagePathPair[]> => {
+
   await Promise.all(
     imagePairs.map(async ({ newPath, oldPath }) => {
       if (!oldPath) return

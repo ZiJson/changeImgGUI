@@ -5,7 +5,8 @@ export const useGitDiff = (project: ProjectInfo | null) => {
   const { data: gitStatus } = useQuery({
     queryKey: ['git-info', project],
     queryFn: () => window.api.git.getGitStatus(project!.path),
-    enabled: !!project
+    enabled: !!project,
+    refetchInterval:2000
   })
 
   return {
