@@ -5,7 +5,6 @@ import { data } from './AppSidebar'
 import packageJson from '../../../../package.json'
 import { Button } from './ui/button'
 
-
 export function SiteHeader() {
   const location = useLocation()
   const title = data.navMain.find((item) => item.url === location.pathname)?.title
@@ -14,10 +13,10 @@ export function SiteHeader() {
       <SidebarTrigger className="-ml-1" size="icon" />
       <Separator orientation="vertical" className="my-2" />
       <h1 className="text-base font-medium">{title}</h1>
-      <div className='flex-1 flex items-center justify-end'>
-      <Button variant='link' onClick={()=>window.api.openExternal(packageJson.homepage)}>
-        GITHUB
-      </Button>
+      <div className="flex flex-1 items-center justify-end">
+        <Button variant="link" onClick={() => window.api.openExternal(packageJson.homepage)}>
+          GITHUB
+        </Button>
       </div>
     </header>
   )

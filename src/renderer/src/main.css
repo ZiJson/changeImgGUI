@@ -13,11 +13,11 @@
 @import '@fontsource-variable/noto-serif';
 @import '@fontsource-variable/public-sans';
 @import '@fontsource-variable/inter';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/outfit";
-@import "@fontsource-variable/oxanium";
-@import "@fontsource-variable/inter";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/oxanium';
+@import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -142,6 +142,6 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-semibold font-sans;
+    @apply font-sans font-semibold;
   }
 }

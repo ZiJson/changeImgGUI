@@ -1,4 +1,4 @@
-import { simpleGit} from 'simple-git'
+import { simpleGit } from 'simple-git'
 import { GitImagePaths, GitStatus } from '../type/git'
 import path from 'path'
 import fs from 'fs/promises'
@@ -7,16 +7,12 @@ import { spawn } from 'child_process'
 import sharp from 'sharp'
 
 export const isWslPath = (projectPath: string): boolean => {
-  return /^\\\\wsl(?:\.localhost|\\$)\\/i.test(
-    projectPath.replaceAll('/', '\\')
-  )
+  return /^\\\\wsl(?:\.localhost|\\$)\\/i.test(projectPath.replaceAll('/', '\\'))
 }
 
 export const toWslLinuxPath = (projectPath: string) => {
   const normalized = projectPath.replaceAll('/', '\\')
-  const match = normalized.match(
-    /^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\(.*)$/i
-  )
+  const match = normalized.match(/^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\(.*)$/i)
 
   if (!match) {
     throw new Error(`Invalid WSL path: ${projectPath}`)
@@ -28,21 +24,9 @@ export const toWslLinuxPath = (projectPath: string) => {
   }
 }
 
-const runWslGit = (
-  distro: string,
-  projectPath: string,
-  args: string[]
-): Promise<string> => {
+const runWslGit = (distro: string, projectPath: string, args: string[]): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const child = spawn('wsl.exe', [
-      '-d',
-      distro,
-      '--',
-      'git',
-      '-C',
-      projectPath,
-      ...args
-    ], {
+    const child = spawn('wsl.exe', ['-d', distro, '--', 'git', '-C', projectPath, ...args], {
       windowsHide: true
     })
 
@@ -92,18 +76,22 @@ export const getGitStatus = async (projectPath: string) => {
 
   const { distro, linuxPath } = toWslLinuxPath(projectPath)
 
-  const output = await runWslGit(distro, linuxPath, [
-    'status',
-    '--porcelain=v1',
-    '-b'
-  ])
+  const output = await runWslGit(distro, linuxPath, ['status', '--porcelain=v1', '-b'])
 
   return parseGitStatus(output)
 }
-const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    const child = spawn('git', ['show', `HEAD:${relativePath}`], {
-      cwd: projectPath,
+const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> => {
+  const wsl = toWslLinuxPath(projectPath)
+
+  const command = wsl ? 'wsl.exe' : 'git'
+
+  const args = wsl
+    ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
+    : ['show', `HEAD:${relativePath}`]
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      ...(wsl ? {} : { cwd: projectPath }),
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
@@ -129,6 +117,7 @@ const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<B
       resolve(Buffer.concat(chunks))
     })
   })
+}
 
 export const getGitImagePaths = async (
   projectPath: string,
@@ -190,16 +179,13 @@ export const getGitImagePaths = async (
   }
 }
 
-
 const parseGitStatus = (output: string): GitStatus => {
   const lines = output.split('\n').filter(Boolean)
   const branchLine = lines.shift() ?? ''
 
-  const current =
-    branchLine.match(/^## (.+?)(?:\.\.\.|$)/)?.[1] ?? null
+  const current = branchLine.match(/^## (.+?)(?:\.\.\.|$)/)?.[1] ?? null
 
-  const tracking =
-    branchLine.match(/\.\.\.(\S+)/)?.[1] ?? null
+  const tracking = branchLine.match(/\.\.\.(\S+)/)?.[1] ?? null
 
   const result: GitStatus = {
     current,
@@ -223,9 +209,12 @@ const parseGitStatus = (output: string): GitStatus => {
       continue
     }
 
-    if (indexStatus === 'U' || workTreeStatus === 'U' ||
-        (indexStatus === 'A' && workTreeStatus === 'A') ||
-        (indexStatus === 'D' && workTreeStatus === 'D')) {
+    if (
+      indexStatus === 'U' ||
+      workTreeStatus === 'U' ||
+      (indexStatus === 'A' && workTreeStatus === 'A') ||
+      (indexStatus === 'D' && workTreeStatus === 'D')
+    ) {
       result.conflicted.push(filePath)
       continue
     }
@@ -238,8 +227,7 @@ const parseGitStatus = (output: string): GitStatus => {
       result.deleted.push(filePath)
     }
 
-    if (indexStatus === 'M' || indexStatus === 'A' ||
-        indexStatus === 'R' || indexStatus === 'C') {
+    if (indexStatus === 'M' || indexStatus === 'A' || indexStatus === 'R' || indexStatus === 'C') {
       result.staged.push(filePath)
     }
 

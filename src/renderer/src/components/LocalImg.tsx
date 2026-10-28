@@ -1,7 +1,4 @@
-export const LocalImg = ({
-  src,
-  ...props
-}: React.ComponentProps<'img'>) => {
+export const LocalImg = ({ src, ...props }: React.ComponentProps<'img'>) => {
   if (!src) {
     return <img {...props} />
   }

@@ -10,7 +10,6 @@ export interface GitImagePaths {
   old: GitImageInfo
 }
 
-
 type GitStatus = {
   current: string | null
   tracking: string | null

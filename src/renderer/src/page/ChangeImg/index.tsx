@@ -120,6 +120,7 @@ const ChangeImg = () => {
                 placeholder="選擇盤口"
                 disabled={!companyFolderList?.length}
                 className="w-[180px]"
+                value={selectedCompanyFolder?.name || ''}
               />
               <ComboboxContent>
                 <ComboboxEmpty>No items found.</ComboboxEmpty>
@@ -168,7 +169,7 @@ const ChangeImg = () => {
           <CardTitle>匯入替換圖片</CardTitle>
           <CardDescription>共 {newImagePaths.length} 個圖片</CardDescription>
           <CardAction className="flex gap-2">
-            <Button size="sm" onClick={selectImages}>
+            <Button size="sm" onClick={selectImages} disabled={!selectedCompanyFolder}>
               <IconLibraryPhoto />
               選取圖片
               <span className="sr-only">匯入替換圖片</span>

@@ -41,8 +41,8 @@ const registerIndexIpc = (): void => {
     return await selectImages(defaultPath)
   })
   ipcMain.handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
-  await shell.openExternal(url)
-})
+    await shell.openExternal(url)
+  })
 }
 
 export const registerAllIpc = (): void => {

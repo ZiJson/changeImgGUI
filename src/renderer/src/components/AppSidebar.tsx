@@ -25,7 +25,9 @@ export function AppSidebar() {
       <SidebarContent>
         <NavMain items={data.navMain.filter((item) => !!item.title)} />
       </SidebarContent>
-      <SidebarFooter><p className='text-muted-foreground text-xs whitespace-nowrap'>v {packageJson.version}</p></SidebarFooter>
+      <SidebarFooter>
+        <p className="text-muted-foreground text-xs whitespace-nowrap">v {packageJson.version}</p>
+      </SidebarFooter>
     </Sidebar>
   )
 }
