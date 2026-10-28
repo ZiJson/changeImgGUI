@@ -22,7 +22,7 @@ export function AppSidebar() {
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader />
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain.filter((item) => !!item.title)} />
       </SidebarContent>
       <SidebarFooter />
     </Sidebar>
