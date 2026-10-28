@@ -77,7 +77,6 @@ const ChangeImg = () => {
       value: p
     })) || []
 
-  console.log(checkResult)
   return (
     <div className="flex flex-col gap-4">
       <Card size="sm">

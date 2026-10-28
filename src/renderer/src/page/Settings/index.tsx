@@ -1,6 +1,13 @@
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@renderer/components/ui/card'
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,6 +32,7 @@ const Settings = () => {
     <Card className="min-w-sm">
       <CardHeader>
         <CardTitle>目前web專案</CardTitle>
+        <CardDescription>※ 可選擇wsl上專案並自動使用wsl git 環境</CardDescription>
         <Badge className="bg-sky-50 p-1 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
           盤口路徑
         </Badge>
