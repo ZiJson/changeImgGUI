@@ -5,6 +5,7 @@ import fs from 'fs/promises'
 import { app } from 'electron'
 import { spawn } from 'child_process'
 import sharp from 'sharp'
+import { createHash } from 'crypto'
 
 export const isWslPath = (projectPath: string): boolean => {
   return /^\\\\wsl(?:\.localhost|\\$)\\/i.test(projectPath.replaceAll('/', '\\'))
@@ -131,8 +132,9 @@ export const getGitImagePaths = async (
   // 寫入 App 暫存目錄
   const tempRoot = path.join(app.getPath('userData'), 'image-diff')
   await fs.mkdir(tempRoot, { recursive: true })
-
-  const tempDir = await fs.mkdtemp(path.join(tempRoot, 'image-'))
+  const tempDir = path.join(tempRoot, createHash('sha256').update(relativePath).digest('hex'))
+  await fs.rm(tempDir, { recursive: true, force: true })
+  await fs.mkdir(tempDir, { recursive: true })
   const oldPath = path.join(tempDir, path.basename(relativePath))
 
   await fs.writeFile(oldPath, buffer)
