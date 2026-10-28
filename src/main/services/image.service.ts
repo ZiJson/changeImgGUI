@@ -326,6 +326,7 @@ export const compressImages = async (imagePairs: ImagePathPair[]): Promise<Image
           case '.png':
             pipeline = pipeline.png({
               compressionLevel: 9,
+              quality: 80,
               palette: true
             })
             break

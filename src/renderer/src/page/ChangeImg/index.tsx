@@ -113,6 +113,7 @@ const ChangeImg = () => {
           <CardTitle>盤口</CardTitle>
           <CardAction>
             <Combobox
+              key={selectedProject?.path}
               items={companyItems}
               itemToStringValue={(item: (typeof companyItems)[0]) => item.label}
             >
@@ -120,7 +121,6 @@ const ChangeImg = () => {
                 placeholder="選擇盤口"
                 disabled={!companyFolderList?.length}
                 className="w-[180px]"
-                value={selectedCompanyFolder?.name || ''}
               />
               <ComboboxContent>
                 <ComboboxEmpty>No items found.</ComboboxEmpty>
