@@ -7,6 +7,7 @@ import { registerAllIpc } from './ipc/index.ipc'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
+    title:'123',
     width: 900,
     height: 670,
     show: false,
@@ -37,7 +38,18 @@ function createWindow(): void {
 }
 
 const protocolName = 'local-source'
-protocol.registerSchemesAsPrivileged([{ scheme: protocolName, privileges: { bypassCSP: true } }])
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: protocolName,
+    privileges: {
+      bypassCSP: true,
+      supportFetchAPI: true,
+      stream: true,
+      standard: true,
+      secure: true
+    }
+  }
+])
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -60,15 +72,20 @@ app.whenReady().then(() => {
   registerAllIpc()
 
   protocol.registerFileProtocol(protocolName, (request, callback) => {
-    const url = request.url.replace(`${protocolName}://`, '')
-    try {
-      return callback(decodeURIComponent(url))
-    } catch (error) {
-      // Handle the error as needed
-      console.error(error)
-    }
-  })
+  try {
+    const url = new URL(request.url)
+    const filePath = url.searchParams.get('path')
 
+    if (!filePath) {
+      return callback({ error: -6 }) // FILE_NOT_FOUND
+    }
+
+    callback({ path: filePath })
+  } catch (error) {
+    console.error('Failed to load local image:', error)
+    callback({ error: -2 }) // FAILED
+  }
+})
   createWindow()
 
   app.on('activate', function () {
