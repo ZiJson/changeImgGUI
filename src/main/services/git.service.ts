@@ -82,13 +82,15 @@ export const getGitStatus = async (projectPath: string) => {
   return parseGitStatus(output)
 }
 const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> => {
-  const wsl = toWslLinuxPath(projectPath)
+  const useLocalGit = !isWslPath(projectPath)
+  const wsl = !useLocalGit ? toWslLinuxPath(projectPath) : null
 
-  const command = wsl ? 'wsl.exe' : 'git'
+  const command = !useLocalGit ? 'wsl.exe' : 'git'
 
-  const args = wsl
-    ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
-    : ['show', `HEAD:${relativePath}`]
+  const args =
+    !useLocalGit && wsl
+      ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
+      : ['show', `HEAD:${relativePath}`]
 
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {

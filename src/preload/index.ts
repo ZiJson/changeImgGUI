@@ -73,6 +73,12 @@ const api = {
       ipcRenderer.invoke(GitIPC.GET_GIT_STATUS, projectPath),
     getGitImagePaths: (projectPath: string, relativePath: string): Promise<GitImagePaths> =>
       ipcRenderer.invoke(GitIPC.GET_GIT_IMAGE_PATHS, projectPath, relativePath)
+  },
+  terminal: {
+    createTerminal: () => ipcRenderer.invoke('create-terminal'),
+    onOutput: (callback) => ipcRenderer.on('terminal-output', (_, data) => callback(data)),
+    sendInput: (input) => ipcRenderer.send('terminal-input', input),
+    disposeTerminal: () => ipcRenderer.invoke('dispose-terminal')
   }
 }
 

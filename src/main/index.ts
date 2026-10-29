@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerAllIpc } from './ipc/index.ipc'
 import { checkForUpdates, setupAutoUpdater } from './updater'
+import { registerTerminalIPC } from './ipc/terminal.ipc'
 
 function createWindow(): void {
   // Create the browser window.
@@ -19,6 +20,8 @@ function createWindow(): void {
       sandbox: false
     }
   })
+
+  registerTerminalIPC(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

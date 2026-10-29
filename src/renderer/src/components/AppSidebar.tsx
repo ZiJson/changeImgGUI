@@ -10,15 +10,18 @@ import {
   SidebarMenuItem
 } from '@renderer/components/ui/sidebar'
 import { route } from '@renderer/route'
-import { type Icon } from '@tabler/icons-react'
+import { IconTerminal2, type Icon } from '@tabler/icons-react'
 import { Link } from 'react-router'
 import packageJson from '../../../../package.json'
+
+import { useTerminalStore } from '@renderer/stores/useTerminalStore'
 
 export const data = {
   navMain: route
 }
 
 export function AppSidebar() {
+  const toggleOpen = useTerminalStore((s) => s.toggleOpen)
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader />
@@ -26,6 +29,14 @@ export function AppSidebar() {
         <NavMain items={data.navMain.filter((item) => !!item.title)} />
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton variant="outline" onClick={toggleOpen} tooltip="終端機">
+              <IconTerminal2 />
+              terminal
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <p className="text-muted-foreground text-xs whitespace-nowrap">v {packageJson.version}</p>
       </SidebarFooter>
     </Sidebar>
