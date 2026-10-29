@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { CompanyFolder, ProjectInfo } from 'src/main/type/settings'
+import { CompanyFolder, ProjectInfo, TerminalConfig } from 'src/main/type/settings'
 import { ImageAlternativeResult, ImagePathPair } from 'src/main/type/image'
 import { StatusResult } from 'simple-git'
 import { GitImagePaths } from 'src/main/type/git'
@@ -76,9 +76,13 @@ const api = {
   },
   terminal: {
     createTerminal: () => ipcRenderer.invoke('create-terminal'),
-    onOutput: (callback) => ipcRenderer.on('terminal-output', (_, data) => callback(data)),
-    sendInput: (input) => ipcRenderer.send('terminal-input', input),
-    disposeTerminal: () => ipcRenderer.invoke('dispose-terminal')
+    onOutput: (callback: (data: string) => void) =>
+      ipcRenderer.on('terminal-output', (_, data: string) => callback(data)),
+    sendInput: (input: string) => ipcRenderer.send('terminal-input', input),
+    disposeTerminal: () => ipcRenderer.invoke('dispose-terminal'),
+    getTerminalConfig: (): Promise<TerminalConfig> => ipcRenderer.invoke('terminal-settings'),
+    updateTerminalConfig: (config: TerminalConfig) =>
+      ipcRenderer.invoke('terminal-settings-update', config)
   }
 }
 

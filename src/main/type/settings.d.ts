@@ -1,5 +1,6 @@
 export interface AppSettings {
   projects: ProjectInfo[]
+  terminal: TerminalConfig
 }
 
 type ProjectInfo = {
@@ -12,4 +13,11 @@ type ProjectInfo = {
 type CompanyFolder = {
   name: string
   path: string
+}
+
+type TerminalType = 'bash' | 'wsl'
+
+interface TerminalConfig {
+  options: TerminalType[]
+  selected: TerminalType
 }

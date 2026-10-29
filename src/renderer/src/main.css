@@ -144,4 +144,8 @@
   html {
     @apply font-sans font-semibold;
   }
+
+  .xterm-viewport {
+    scrollbar-width: none;
+  }
 }

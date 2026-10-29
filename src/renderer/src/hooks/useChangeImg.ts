@@ -1,3 +1,4 @@
+import { useChangeImgStore } from '@renderer/stores/useChangeImgStore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ImageChecks, ImagePathPair } from 'src/main/type/image'
@@ -5,9 +6,14 @@ import { CompanyFolder, ProjectInfo } from 'src/main/type/settings'
 
 export const useChangeImg = () => {
   const queryClient = useQueryClient()
-  const [project, setProject] = useState<ProjectInfo | null>(null)
-  const [selectedCompanyFolder, setSelectedCompanyFolder] = useState<CompanyFolder | null>(null)
-  const [newImagePaths, setNewImagePaths] = useState<string[]>([])
+  const project = useChangeImgStore((state) => state.project)
+  const setProject = useChangeImgStore((state) => state.setProject)
+
+  const selectedCompanyFolder = useChangeImgStore((state) => state.selectedCompanyFolder)
+  const setSelectedCompanyFolder = useChangeImgStore((state) => state.setSelectedCompanyFolder)
+
+  const newImagePaths = useChangeImgStore((state) => state.newImagePaths)
+  const setNewImagePaths = useChangeImgStore((state) => state.setNewImagePaths)
 
   const selectProject = (project: ProjectInfo | null) => {
     setProject(project)

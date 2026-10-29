@@ -6,10 +6,8 @@
 
 <img width="672" height="324" alt="image" src="https://github.com/user-attachments/assets/83fe29d1-dae0-4ce5-ae79-4aa88ef04ad7" />
 
- - 選取web專案(repo root) 以及盤口資料夾(companyList)
- - 可選取wsl上的專案，如果平常用wsl開發的話
-
-
+- 選取web專案(repo root) 以及盤口資料夾(companyList)
+- 可選取wsl上的專案，如果平常用wsl開發的話
 
 # 當前功能
 

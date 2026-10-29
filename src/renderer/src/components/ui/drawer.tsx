@@ -98,7 +98,12 @@ function DrawerContent({
   const swipeAxis = swipeDirection === 'down' || swipeDirection === 'up' ? 'y' : 'x'
 
   return (
-    <DrawerPortal data-slot="drawer-portal" container={container} className="relative size-full">
+    <DrawerPortal
+      data-slot="drawer-portal"
+      container={container}
+      className="relative size-full"
+      keepMounted
+    >
       {modal === true && <DrawerOverlay data-snap-points={hasSnapPoints ? '' : undefined} />}
       <DrawerPrimitive.Viewport
         data-slot="drawer-viewport"

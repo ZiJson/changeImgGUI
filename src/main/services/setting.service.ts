@@ -7,7 +7,11 @@ const settingsPath = path.join(app.getPath('userData'), 'settings.json')
 export const tempDir = path.join(app.getPath('temp'), 'changeImgGUI')
 
 const defaultSettings: AppSettings = {
-  projects: []
+  projects: [],
+  terminal: {
+    selected: 'bash',
+    options: []
+  }
 }
 
 export const selectDirectory = async (defaultPath?: string): Promise<string | null> => {

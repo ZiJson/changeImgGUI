@@ -6,11 +6,10 @@ import { Drawer, DrawerContent } from './ui/drawer'
 import { useLayoutEffect, useState } from 'react'
 
 import { useTerminalStore } from '@renderer/stores/useTerminalStore'
+import { cn } from 'cn'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [container, setContainer] = useState<HTMLElement | null>(null)
-  const open = useTerminalStore((s) => s.open)
-  const onOpenChange = useTerminalStore((s) => s.onOpenChange)
 
   useLayoutEffect(() => {
     const ele = document.querySelector('#portal')
@@ -26,20 +25,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }
     >
       <AppSidebar />
-      <SidebarInset className="size-full overflow-hidden" id="portal">
+      <SidebarInset className="size-full overflow-hidden">
         <SiteHeader />
-        <div className="p-4">{children}</div>
-        <Drawer
-          modal={false}
-          showSwipeHandle
-          disablePointerDismissal
-          open={open}
-          onOpenChange={onOpenChange}
-        >
-          <DrawerContent className="h-[30vh] scrollbar-none" container={container as HTMLElement}>
-            <TerminalComponent />
-          </DrawerContent>
-        </Drawer>
+        <div className="flex-1 overflow-auto p-4">{children}</div>
+        <div className={cn('h-fit shrink-0 border transition-all duration-300')}>
+          <TerminalComponent />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )

@@ -13,6 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@renderer/components/ui/collapsible'
+import { Field, FieldContent, FieldLabel, FieldTitle } from '@renderer/components/ui/field'
 import {
   Item,
   ItemActions,
@@ -21,37 +22,66 @@ import {
   ItemMedia,
   ItemTitle
 } from '@renderer/components/ui/item'
+import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { useProjects } from '@renderer/hooks/useProjects'
+import { useSetting } from '@renderer/hooks/useSetting'
 import { IconChevronDown, IconFolderOpen } from '@tabler/icons-react'
-import { ProjectInfo } from 'src/main/type/settings'
+import { ProjectInfo, TerminalConfig } from 'src/main/type/settings'
 
 const Settings = () => {
   const { projects, addNewProject, deleteProject } = useProjects()
+  const { terminalConfig, onTerminalChange } = useSetting()
 
   return (
-    <Card className="min-w-sm">
-      <CardHeader>
-        <CardTitle>目前web專案</CardTitle>
-        <CardDescription>※ 可選擇wsl上專案並自動使用wsl git 環境</CardDescription>
-        <Badge className="bg-sky-50 p-1 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-          盤口路徑
-        </Badge>
-        <CardAction>
-          <Button size="sm" onClick={addNewProject}>
-            新增
-          </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        {projects.map((project) => (
-          <ProjectItem
-            key={project.path}
-            project={project}
-            onDelete={() => deleteProject(project)}
-          />
-        ))}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-4">
+      <Card className="min-w-sm">
+        <CardHeader>
+          <CardTitle>目前web專案</CardTitle>
+          <CardDescription>※ 可選擇wsl上專案並自動使用wsl git 環境</CardDescription>
+          <Badge className="bg-sky-50 p-1 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+            盤口路徑
+          </Badge>
+          <CardAction>
+            <Button size="sm" onClick={addNewProject}>
+              新增
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {projects.map((project) => (
+            <ProjectItem
+              key={project.path}
+              project={project}
+              onDelete={() => deleteProject(project)}
+            />
+          ))}
+        </CardContent>
+      </Card>
+      <Card className="min-w-sm">
+        <CardHeader>
+          <CardTitle>Terminal</CardTitle>
+          <CardDescription>終端機類型</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={terminalConfig?.selected || ''}
+            onValueChange={(v) => onTerminalChange(v)}
+            className="max-w-sm"
+          >
+            {terminalConfig?.options.map((opt) => (
+              <FieldLabel htmlFor={`term=${opt}`}>
+                <Field orientation="horizontal">
+                  <FieldContent>
+                    <FieldTitle>{opt}</FieldTitle>
+                  </FieldContent>
+                  <RadioGroupItem value={opt} id={`term=${opt}`} />
+                </Field>
+              </FieldLabel>
+            ))}
+          </RadioGroup>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

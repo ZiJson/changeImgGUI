@@ -47,6 +47,7 @@ import {
   ComboboxItem,
   ComboboxList
 } from '@renderer/components/ui/combobox'
+import { CompanyFolder } from 'src/main/type/settings'
 
 const ChangeImg = () => {
   const { projects } = useProjects()
@@ -83,7 +84,7 @@ const ChangeImg = () => {
         <CardHeader>
           <CardTitle>Web 專案</CardTitle>
           <CardAction>
-            <Select>
+            <Select value={selectedProject} onValueChange={selectProject}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue>{(v) => v?.name || '選擇專案'}</SelectValue>
               </SelectTrigger>
@@ -94,7 +95,6 @@ const ChangeImg = () => {
                       key={item.value.companyListPath}
                       value={item.value}
                       disabled={!item.value.companyListPath}
-                      onClick={() => selectProject(item.value)}
                     >
                       {item.label}
                     </SelectItem>
@@ -114,24 +114,27 @@ const ChangeImg = () => {
           <CardAction>
             <Combobox
               key={selectedProject?.path}
-              items={companyItems}
-              itemToStringValue={(item: (typeof companyItems)[0]) => item.label}
+              items={companyFolderList}
+              value={selectedCompanyFolder}
+              onValueChange={selectCompanyFolder}
             >
               <ComboboxInput
                 placeholder="選擇盤口"
                 disabled={!companyFolderList?.length}
+                value={selectedCompanyFolder?.name}
                 className="w-[180px]"
               />
+
               <ComboboxContent>
                 <ComboboxEmpty>No items found.</ComboboxEmpty>
                 <ComboboxList>
-                  {(item: (typeof companyItems)[0]) => (
+                  {(item: CompanyFolder) => (
                     <ComboboxItem
-                      key={item.label}
+                      key={item.name}
                       value={item}
-                      onClick={() => selectCompanyFolder(item.value)}
+                      // onClick={() => selectCompanyFolder(item.value)}
                     >
-                      {item.label}
+                      {item.name}
                     </ComboboxItem>
                   )}
                 </ComboboxList>
