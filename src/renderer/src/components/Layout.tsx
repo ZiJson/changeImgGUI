@@ -2,19 +2,9 @@ import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { SiteHeader } from './SiteHeader'
 import TerminalComponent from './Terminal'
-import { Drawer, DrawerContent } from './ui/drawer'
-import { useLayoutEffect, useState } from 'react'
-
-import { useTerminalStore } from '@renderer/stores/useTerminalStore'
 import { cn } from 'cn'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const [container, setContainer] = useState<HTMLElement | null>(null)
-
-  useLayoutEffect(() => {
-    const ele = document.querySelector('#portal')
-    setContainer(ele as HTMLElement)
-  }, [])
   return (
     <SidebarProvider
       className="size-full"
