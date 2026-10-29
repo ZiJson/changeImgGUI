@@ -3,7 +3,7 @@ import { TerminalConfig, TerminalType } from 'src/main/type/settings'
 
 export const useSetting = () => {
   const queryClient = useQueryClient()
-  const { data: terminalConfig, isLoading } = useQuery({
+  const { data: terminalConfig } = useQuery({
     queryKey: ['terminal', 'config'],
     queryFn: window.api.terminal.getTerminalConfig
   })

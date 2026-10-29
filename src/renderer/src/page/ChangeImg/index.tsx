@@ -72,11 +72,6 @@ const ChangeImg = () => {
     value: p,
     label: p.name
   }))
-  const companyItems =
-    companyFolderList?.map((p) => ({
-      label: p.name,
-      value: p
-    })) || []
 
   return (
     <div className="flex flex-col gap-4">

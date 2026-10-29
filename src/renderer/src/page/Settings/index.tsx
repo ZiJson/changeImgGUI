@@ -26,7 +26,7 @@ import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { useProjects } from '@renderer/hooks/useProjects'
 import { useSetting } from '@renderer/hooks/useSetting'
 import { IconChevronDown, IconFolderOpen } from '@tabler/icons-react'
-import { ProjectInfo, TerminalConfig } from 'src/main/type/settings'
+import { ProjectInfo } from 'src/main/type/settings'
 
 const Settings = () => {
   const { projects, addNewProject, deleteProject } = useProjects()
@@ -69,7 +69,7 @@ const Settings = () => {
             className="max-w-sm"
           >
             {terminalConfig?.options.map((opt) => (
-              <FieldLabel htmlFor={`term=${opt}`}>
+              <FieldLabel key={opt} htmlFor={`term=${opt}`}>
                 <Field orientation="horizontal">
                   <FieldContent>
                     <FieldTitle>{opt}</FieldTitle>

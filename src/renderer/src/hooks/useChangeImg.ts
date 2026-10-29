@@ -2,7 +2,7 @@ import { useChangeImgStore } from '@renderer/stores/useChangeImgStore'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ImageChecks, ImagePathPair } from 'src/main/type/image'
-import { CompanyFolder, ProjectInfo } from 'src/main/type/settings'
+import { ProjectInfo } from 'src/main/type/settings'
 
 export const useChangeImg = () => {
   const queryClient = useQueryClient()

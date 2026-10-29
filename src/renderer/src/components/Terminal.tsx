@@ -14,7 +14,7 @@ const TerminalComponent = () => {
   const { terminalConfig } = useSetting()
 
   useEffect(() => {
-    if (!terminalRef.current|| !terminalConfig?.selected) return
+    if (!terminalRef.current || !terminalConfig?.selected) return
     console.log('update')
 
     // 初始化终端实例
@@ -65,14 +65,13 @@ const TerminalComponent = () => {
   }, [])
 
   return (
-    
     <div
       ref={terminalRef}
       className={cn(
         'size-full h-[200px] transition-[height] duration-300',
         open ? 'h-[200px]' : 'h-0'
       )}
-      />
+    />
   )
 }
 
