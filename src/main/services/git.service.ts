@@ -102,15 +102,13 @@ export const getRepoInfo = async (projectPath: string): Promise<GitRepoInfo> => 
 }
 
 const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> => {
-  const useLocalGit = !isWslPath(projectPath)
-  const wsl = !useLocalGit ? toWslLinuxPath(projectPath) : null
+  const wsl = toWslLinuxPath(projectPath)
 
-  const command = !useLocalGit ? 'wsl.exe' : 'git'
+  const command = wsl ? 'wsl.exe' : 'git'
 
-  const args =
-    !useLocalGit && wsl
-      ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
-      : ['show', `HEAD:${relativePath}`]
+  const args = wsl
+    ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
+    : ['show', `HEAD:${relativePath}`]
 
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -146,11 +144,10 @@ export const getGitImagePaths = async (
   projectPath: string,
   relativePath: string
 ): Promise<GitImagePaths> => {
-  const { root } = await getRepoInfo(projectPath)
-  const currentPath = path.resolve(root, relativePath)
+  const currentPath = path.resolve(projectPath, relativePath)
 
   // 從 Git HEAD 取得舊圖片的原始二進位資料
-  const buffer = await getGitImageBuffer(root, relativePath)
+  const buffer = await getGitImageBuffer(projectPath, relativePath)
 
   // 寫入 App 暫存目錄
   const tempRoot = path.join(app.getPath('userData'), 'image-diff')
