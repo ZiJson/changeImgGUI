@@ -31,12 +31,12 @@ import { IconArrowLeftBar } from '@tabler/icons-react'
 import { GitImageInfo } from 'src/main/type/git'
 
 export const GitDiffCard = ({ project }: { project: ProjectInfo | null }) => {
-  const { gitStatus } = useGitDiff(project)
+  const { gitStatus, repoInfo } = useGitDiff(project)
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle>Git Diff</CardTitle>
-        <CardDescription>根目錄：{project?.path}</CardDescription>
+        <CardDescription>根目錄：{repoInfo?.root}</CardDescription>
         <CardDescription>當前分支：{gitStatus?.current}</CardDescription>
       </CardHeader>
       <CardContent>

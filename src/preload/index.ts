@@ -3,12 +3,13 @@ import { electronAPI } from '@electron-toolkit/preload'
 import { CompanyFolder, ProjectInfo, TerminalConfig } from 'src/main/type/settings'
 import { ImageAlternativeResult, ImagePathPair } from 'src/main/type/image'
 import { StatusResult } from 'simple-git'
-import { GitImagePaths } from 'src/main/type/git'
+import { GitImagePaths, GitRepoInfo } from 'src/main/type/git'
 
 // Custom APIs for renderer
 enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
   SELECT_IMAGES = 'select-images',
+  SELECT_FILE = 'select-file',
   OPEN_EXTERNAL = 'open-external'
 }
 
@@ -19,7 +20,9 @@ enum ProjectIPC {
   GET_PROJECTS = 'project:get-projects',
   GET_COMPANY_FOLDER_LIST = 'project:get-company-folder-list',
   GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
-  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder'
+  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
+  SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
+  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code'
 }
 
 enum ImageIPC {
@@ -32,7 +35,8 @@ enum ImageIPC {
 
 enum GitIPC {
   GET_GIT_STATUS = 'git:get-git-status',
-  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths'
+  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths',
+  GET_GIT_REPO_INFO = 'git:get-git-repo-info'
 }
 
 const api = {
@@ -40,6 +44,8 @@ const api = {
     ipcRenderer.invoke(IndexIPC.SELECT_DIRECTORY, defaultPath),
   selectImages: (defaultPath?: string): Promise<string[] | null> =>
     ipcRenderer.invoke(IndexIPC.SELECT_IMAGES, defaultPath),
+  selectFile: (defaultPath?: string): Promise<string | null> =>
+    ipcRenderer.invoke(IndexIPC.SELECT_FILE, defaultPath),
   openExternal: (url: string) => ipcRenderer.invoke(IndexIPC.OPEN_EXTERNAL, url),
   project: {
     addNewProject: (project: ProjectInfo) =>
@@ -52,7 +58,11 @@ const api = {
     getFavIconByCompanyFolder: (companyFolder: CompanyFolder): Promise<string> =>
       ipcRenderer.invoke(ProjectIPC.GET_FAV_ICON_BY_COMPANY_FOLDER, companyFolder),
     getImageFolderByCompanyFolder: (companyFolder: CompanyFolder): Promise<string> =>
-      ipcRenderer.invoke(ProjectIPC.GET_IMAGE_FOLDER_BY_COMPANY_FOLDER, companyFolder)
+      ipcRenderer.invoke(ProjectIPC.GET_IMAGE_FOLDER_BY_COMPANY_FOLDER, companyFolder),
+    switchCompanyConfig: (configFilePath: string, companyCode: string) =>
+      ipcRenderer.invoke(ProjectIPC.SWITCH_COMPANY_CONFIG, configFilePath, companyCode),
+    getActiveCompanyCode: (configFilePath: string, companyCodes: string[]) =>
+      ipcRenderer.invoke(ProjectIPC.GET_ACTIVE_COMPANY_CODE, configFilePath, companyCodes)
   },
   image: {
     checkImagesMatch: (props: {
@@ -72,7 +82,9 @@ const api = {
     getGitStatus: (projectPath: string): Promise<StatusResult> =>
       ipcRenderer.invoke(GitIPC.GET_GIT_STATUS, projectPath),
     getGitImagePaths: (projectPath: string, relativePath: string): Promise<GitImagePaths> =>
-      ipcRenderer.invoke(GitIPC.GET_GIT_IMAGE_PATHS, projectPath, relativePath)
+      ipcRenderer.invoke(GitIPC.GET_GIT_IMAGE_PATHS, projectPath, relativePath),
+    getGitRepoInfo: (projectPath: string): Promise<GitRepoInfo> =>
+      ipcRenderer.invoke(GitIPC.GET_GIT_REPO_INFO, projectPath)
   },
   terminal: {
     createTerminal: () => ipcRenderer.invoke('create-terminal'),

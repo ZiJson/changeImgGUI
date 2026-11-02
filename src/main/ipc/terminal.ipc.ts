@@ -27,7 +27,6 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
       cwd: os.homedir(),
       env: process.env
     })
-    console.log(ptyProcess)
     terminalProcess = ptyProcess
 
     ptyProcess.onData((data) => {

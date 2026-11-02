@@ -1,5 +1,5 @@
 import { simpleGit } from 'simple-git'
-import { GitImagePaths, GitStatus } from '../type/git'
+import { GitImagePaths, GitRepoInfo, GitStatus } from '../type/git'
 import path from 'path'
 import fs from 'fs/promises'
 import { app } from 'electron'
@@ -81,6 +81,26 @@ export const getGitStatus = async (projectPath: string) => {
 
   return parseGitStatus(output)
 }
+
+export const getRepoInfo = async (projectPath: string): Promise<GitRepoInfo> => {
+  if (!isWslPath(projectPath)) {
+    const git = simpleGit(projectPath)
+    const root = await git.revparse(['--show-toplevel'])
+
+    return {
+      root: root.trim()
+    }
+  }
+
+  const { distro, linuxPath } = toWslLinuxPath(projectPath)
+
+  const output = await runWslGit(distro, linuxPath, ['rev-parse', '--show-toplevel'])
+
+  return {
+    root: output.trim()
+  }
+}
+
 const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> => {
   const useLocalGit = !isWslPath(projectPath)
   const wsl = !useLocalGit ? toWslLinuxPath(projectPath) : null
@@ -126,10 +146,11 @@ export const getGitImagePaths = async (
   projectPath: string,
   relativePath: string
 ): Promise<GitImagePaths> => {
-  const currentPath = path.resolve(projectPath, relativePath)
+  const { root } = await getRepoInfo(projectPath)
+  const currentPath = path.resolve(root, relativePath)
 
   // 從 Git HEAD 取得舊圖片的原始二進位資料
-  const buffer = await getGitImageBuffer(projectPath, relativePath)
+  const buffer = await getGitImageBuffer(root, relativePath)
 
   // 寫入 App 暫存目錄
   const tempRoot = path.join(app.getPath('userData'), 'image-diff')

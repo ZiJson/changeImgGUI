@@ -27,6 +27,19 @@ export const selectDirectory = async (defaultPath?: string): Promise<string | nu
   return result.filePaths[0]
 }
 
+export const selectFile = async (defaultPath?: string): Promise<string | null> => {
+  const result = await dialog.showOpenDialog({
+    ...(defaultPath ? { defaultPath } : {}),
+    properties: ['openFile']
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null
+  }
+
+  return result.filePaths[0]
+}
+
 export const selectImages = async (defaultPath?: string): Promise<string[] | null> => {
   const result = await dialog.showOpenDialog({
     ...(defaultPath ? { defaultPath } : {}),

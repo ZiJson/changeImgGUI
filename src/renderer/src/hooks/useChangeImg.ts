@@ -1,5 +1,5 @@
 import { useChangeImgStore } from '@renderer/stores/useChangeImgStore'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { ImageChecks, ImagePathPair } from 'src/main/type/image'
 import { ProjectInfo } from 'src/main/type/settings'
@@ -46,6 +46,25 @@ export const useChangeImg = () => {
         newImagePaths
       }),
     enabled: !!project && !!selectedCompanyFolder && !!newImagePaths.length
+  })
+
+  const { data: activeCompanyCode } = useQuery({
+    queryKey: ['activeCompanyCode', project],
+    queryFn: () =>
+      window.api.project.getActiveCompanyCode(
+        project!.configPath!,
+        companyFolderList!.map((c) => c.name)
+      ),
+    enabled: !!project?.configPath && !!companyFolderList?.length
+  })
+
+  const { mutateAsync: switchCompanyConfig } = useMutation({
+    mutationKey: ['switchConfig', project, selectedCompanyFolder],
+    mutationFn: () =>
+      window.api.project.switchCompanyConfig(project!.configPath!, selectedCompanyFolder!.name!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activeCompanyCode'] })
+    }
   })
 
   const selectImages = async () => {
@@ -140,6 +159,8 @@ export const useChangeImg = () => {
     fixImages,
     fixLoading,
     replaceImages,
-    replaceImagesLoading
+    replaceImagesLoading,
+    switchCompanyConfig,
+    activeCompanyCode
   }
 }

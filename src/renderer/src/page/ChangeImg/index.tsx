@@ -12,6 +12,7 @@ import {
 } from '@renderer/components/ui/card'
 import {
   Item,
+  ItemActions,
   ItemContent,
   ItemDescription,
   ItemMedia,
@@ -66,7 +67,9 @@ const ChangeImg = () => {
     fixImages,
     fixLoading,
     replaceImages,
-    replaceImagesLoading
+    replaceImagesLoading,
+    switchCompanyConfig,
+    activeCompanyCode
   } = useChangeImg()
   const items = projects.map((p) => ({
     value: p,
@@ -281,7 +284,29 @@ const ChangeImg = () => {
           </CardDescription>
         </CardFooter>
       </Card>
-
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>測試</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Item className="h-full">
+            <ItemContent>
+              <ItemTitle>切換盤口config</ItemTitle>
+              <ItemDescription>當前使用盤口：{activeCompanyCode}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button disabled={!selectedCompanyFolder} onClick={() => switchCompanyConfig()}>
+                切換 {selectedCompanyFolder?.name}
+              </Button>
+            </ItemActions>
+          </Item>
+        </CardContent>
+        <CardFooter>
+          <CardDescription className="text-xs">
+            ※ 切換使用盤口後，請使用終端機開啟本地專案測試/打包
+          </CardDescription>
+        </CardFooter>
+      </Card>
       <GitDiffCard project={selectedProject} />
     </div>
   )

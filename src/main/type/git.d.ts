@@ -21,3 +21,7 @@ type GitStatus = {
   renamed: string[]
   conflicted: string[]
 }
+
+type GitRepoInfo = {
+  root: string
+}

@@ -8,6 +8,7 @@ type ProjectInfo = {
   path: string
   description: string
   companyListPath?: string
+  configPath?: string
 }
 
 type CompanyFolder = {

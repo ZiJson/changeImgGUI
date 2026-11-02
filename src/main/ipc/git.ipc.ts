@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getGitImagePaths, getGitStatus } from '../services/git.service'
+import { getGitImagePaths, getGitStatus, getRepoInfo } from '../services/git.service'
 import { GitIPC } from './index.ipc'
 
 export const registerGitIpc = (): void => {
@@ -8,5 +8,8 @@ export const registerGitIpc = (): void => {
   })
   ipcMain.handle(GitIPC.GET_GIT_IMAGE_PATHS, async (_, projectPath, relativePath) => {
     return await getGitImagePaths(projectPath, relativePath)
+  })
+  ipcMain.handle(GitIPC.GET_GIT_REPO_INFO, async (_, projectPath) => {
+    return await getRepoInfo(projectPath)
   })
 }

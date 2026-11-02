@@ -23,13 +23,14 @@ import {
   ItemTitle
 } from '@renderer/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Spinner } from '@renderer/components/ui/spinner'
 import { useProjects } from '@renderer/hooks/useProjects'
 import { useSetting } from '@renderer/hooks/useSetting'
 import { IconChevronDown, IconFolderOpen } from '@tabler/icons-react'
 import { ProjectInfo } from 'src/main/type/settings'
 
 const Settings = () => {
-  const { projects, addNewProject, deleteProject } = useProjects()
+  const { projects, addNewProject, deleteProject, isLoading } = useProjects()
   const { terminalConfig, onTerminalChange } = useSetting()
 
   return (
@@ -42,7 +43,8 @@ const Settings = () => {
             盤口路徑
           </Badge>
           <CardAction>
-            <Button size="sm" onClick={addNewProject}>
+            <Button size="sm" onClick={addNewProject} disabled={isLoading}>
+              {isLoading && <Spinner />}
               新增
             </Button>
           </CardAction>
@@ -86,7 +88,7 @@ const Settings = () => {
 }
 
 const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: () => void }) => {
-  const { setCompanyListPath, hasCompanyListPath } = useProjects(project)
+  const { setCompanyListPath, hasCompanyListPath, setConfigPath } = useProjects(project)
 
   return (
     <Collapsible className="data-open:bg-muted">
@@ -105,7 +107,14 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
               )}
             </ItemMedia>
             <ItemActions>
-              <Button variant="destructive" size="sm" onClick={onDelete}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+              >
                 刪除
               </Button>
               <Button variant="ghost" size="xs">
@@ -123,6 +132,17 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
           </ItemContent>
           <ItemActions>
             <Button variant="outline" size="sm" onClick={() => setCompanyListPath()}>
+              <IconFolderOpen />
+            </Button>
+          </ItemActions>
+        </Item>
+        <Item variant="outline" size="xs">
+          <ItemContent>
+            <ItemTitle>multipage.config.js</ItemTitle>
+            <ItemDescription>{project.configPath || '未設定'}</ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Button variant="outline" size="sm" onClick={() => setConfigPath()}>
               <IconFolderOpen />
             </Button>
           </ItemActions>

@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import { registerAllIpc } from './ipc/index.ipc'
 import { checkForUpdates, setupAutoUpdater } from './updater'
 import { registerTerminalIPC } from './ipc/terminal.ipc'
+import { initializeProjects } from './services/project.service'
 
 function createWindow(): void {
   // Create the browser window.
@@ -58,7 +59,7 @@ protocol.registerSchemesAsPrivileged([
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   setupAutoUpdater()
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -91,6 +92,8 @@ app.whenReady().then(() => {
       callback({ error: -2 }) // FAILED
     }
   })
+  await initializeProjects()
+
   createWindow()
 
   // 等 App 啟動後再檢查更新

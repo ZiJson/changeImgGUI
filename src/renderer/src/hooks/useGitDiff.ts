@@ -9,8 +9,15 @@ export const useGitDiff = (project: ProjectInfo | null) => {
     refetchInterval: 2000
   })
 
+  const { data: repoInfo } = useQuery({
+    queryKey: ['git-repo', project],
+    queryFn: () => window.api.git.getGitRepoInfo(project!.path),
+    enabled: !!project
+  })
+
   return {
-    gitStatus
+    gitStatus,
+    repoInfo
   }
 }
 

@@ -1,5 +1,5 @@
 import { ipcMain, shell } from 'electron'
-import { selectDirectory, selectImages } from '../services/setting.service'
+import { selectDirectory, selectFile, selectImages } from '../services/setting.service'
 import { registerProjectIpc } from './project.ipc'
 import { registerImageIpc } from './image.ipc'
 import { registerGitIpc } from './git.ipc'
@@ -7,6 +7,7 @@ import { registerGitIpc } from './git.ipc'
 export enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
   SELECT_IMAGES = 'select-images',
+  SELECT_FILE = 'select-file',
   OPEN_EXTERNAL = 'open-external'
 }
 
@@ -17,7 +18,9 @@ export enum ProjectIPC {
   GET_PROJECTS = 'project:get-projects',
   GET_COMPANY_FOLDER_LIST = 'project:get-company-folder-list',
   GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
-  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder'
+  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
+  SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
+  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code'
 }
 
 export enum ImageIPC {
@@ -30,7 +33,8 @@ export enum ImageIPC {
 
 export enum GitIPC {
   GET_GIT_STATUS = 'git:get-git-status',
-  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths'
+  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths',
+  GET_GIT_REPO_INFO = 'git:get-git-repo-info'
 }
 
 const registerIndexIpc = (): void => {
@@ -39,6 +43,9 @@ const registerIndexIpc = (): void => {
   })
   ipcMain.handle(IndexIPC.SELECT_IMAGES, async (_, defaultPath) => {
     return await selectImages(defaultPath)
+  })
+  ipcMain.handle(IndexIPC.SELECT_FILE, async (_, defaultPath) => {
+    return await selectFile(defaultPath)
   })
   ipcMain.handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
     await shell.openExternal(url)
