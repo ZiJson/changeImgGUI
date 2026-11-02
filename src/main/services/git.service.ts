@@ -102,9 +102,10 @@ export const getRepoInfo = async (projectPath: string): Promise<GitRepoInfo> => 
 }
 
 const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<Buffer> => {
-  const wsl = toWslLinuxPath(projectPath)
+  const useLocalGit = !isWslPath(projectPath)
+  const wsl = !useLocalGit ? toWslLinuxPath(projectPath) : null
 
-  const command = wsl ? 'wsl.exe' : 'git'
+  const command = !useLocalGit ? 'wsl.exe' : 'git'
 
   const args = wsl
     ? ['-d', wsl.distro, '--', 'git', '-C', wsl.linuxPath, 'show', `HEAD:${relativePath}`]
