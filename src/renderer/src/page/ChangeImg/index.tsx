@@ -202,7 +202,7 @@ const ChangeImg = () => {
               <IconRefresh />
             </Button>
             <Button
-              disabled={!companyConfig!.path}
+              disabled={!companyConfig?.path}
               onClick={() => window.api.revealInFileExplorer(companyConfig!.path!, 'open')}
             >
               <IconExternalLink />
