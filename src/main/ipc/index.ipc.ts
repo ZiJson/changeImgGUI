@@ -1,14 +1,21 @@
 import { ipcMain, shell } from 'electron'
-import { selectDirectory, selectFile, selectImages } from '../services/setting.service'
+import {
+  revealInFileExplorer,
+  selectDirectory,
+  selectFile,
+  selectImages
+} from '../services/setting.service'
 import { registerProjectIpc } from './project.ipc'
 import { registerImageIpc } from './image.ipc'
 import { registerGitIpc } from './git.ipc'
+import { RevealMode } from '../type/settings'
 
 export enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
   SELECT_IMAGES = 'select-images',
   SELECT_FILE = 'select-file',
-  OPEN_EXTERNAL = 'open-external'
+  OPEN_EXTERNAL = 'open-external',
+  REVEAL_IN_FIE_EXPLORER = 'reveal-in-file-explorer'
 }
 
 export enum ProjectIPC {
@@ -50,6 +57,12 @@ const registerIndexIpc = (): void => {
   ipcMain.handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
     await shell.openExternal(url)
   })
+  ipcMain.handle(
+    IndexIPC.REVEAL_IN_FIE_EXPLORER,
+    async (_, path: string, mode: RevealMode = 'select') => {
+      return await revealInFileExplorer(path, mode)
+    }
+  )
 }
 
 export const registerAllIpc = (): void => {

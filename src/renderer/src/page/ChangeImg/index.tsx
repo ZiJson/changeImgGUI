@@ -49,6 +49,7 @@ import {
   ComboboxList
 } from '@renderer/components/ui/combobox'
 import { CompanyFolder } from 'src/main/type/settings'
+import { PathExplorer } from '@renderer/components/ui/pathExplorer'
 
 const ChangeImg = () => {
   const { projects } = useProjects()
@@ -148,7 +149,9 @@ const ChangeImg = () => {
                 <div>
                   <ItemContent>
                     <ItemTitle>Favicon</ItemTitle>
-                    <ItemDescription>{favIcon}</ItemDescription>
+                    <ItemDescription>
+                      <PathExplorer path={favIcon} />
+                    </ItemDescription>
                   </ItemContent>
                   <ItemMedia variant="image">
                     <LocalImg src={favIcon} alt="favicon" className="object-cover" />
@@ -159,7 +162,9 @@ const ChangeImg = () => {
             <Item variant="outline">
               <ItemContent>
                 <ItemTitle>靜態圖片目錄</ItemTitle>
-                <ItemDescription>{imageFolder}</ItemDescription>
+                <ItemDescription>
+                  <PathExplorer path={imageFolder} />
+                </ItemDescription>
               </ItemContent>
             </Item>
           </CardContent>

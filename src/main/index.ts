@@ -92,7 +92,9 @@ app.whenReady().then(async () => {
       callback({ error: -2 }) // FAILED
     }
   })
-  await initializeProjects()
+  try {
+    await initializeProjects()
+  } catch {}
 
   createWindow()
 

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { AppSettings } from '../type/settings'
-import { app, dialog } from 'electron'
+import { AppSettings, RevealMode } from '../type/settings'
+import { app, dialog, shell } from 'electron'
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json')
 export const tempDir = path.join(app.getPath('temp'), 'changeImgGUI')
@@ -91,4 +91,25 @@ export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
       return targetPath
     })
   )
+}
+
+export const revealInFileExplorer = async (path: string, mode: RevealMode = 'select') => {
+  try {
+    await fs.access(path)
+
+    if (mode === 'open') {
+      const error = await shell.openPath(path)
+
+      if (error) {
+        throw new Error(error)
+      }
+    } else {
+      shell.showItemInFolder(path)
+    }
+
+    return true
+  } catch (error) {
+    console.error('Failed to reveal path:', error)
+    return false
+  }
 }

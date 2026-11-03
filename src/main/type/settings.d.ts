@@ -22,3 +22,10 @@ interface TerminalConfig {
   options: TerminalType[]
   selected: TerminalType
 }
+
+type RevealMode = 'select' | 'open'
+
+interface RevealOptions {
+  path: string
+  mode?: RevealMode
+}

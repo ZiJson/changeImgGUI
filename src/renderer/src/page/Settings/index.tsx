@@ -22,6 +22,7 @@ import {
   ItemMedia,
   ItemTitle
 } from '@renderer/components/ui/item'
+import { PathExplorer } from '@renderer/components/ui/pathExplorer'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { useProjects } from '@renderer/hooks/useProjects'
@@ -98,7 +99,9 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
           <Item variant="outline">
             <ItemContent>
               <ItemTitle>{project.name}</ItemTitle>
-              <ItemDescription>{project.path}</ItemDescription>
+              <ItemDescription>
+                <PathExplorer path={project.path} />
+              </ItemDescription>
               <ItemDescription>{project.description}</ItemDescription>
             </ItemContent>
             <ItemMedia>

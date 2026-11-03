@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { CompanyFolder, ProjectInfo, TerminalConfig } from 'src/main/type/settings'
+import { CompanyFolder, ProjectInfo, RevealMode, TerminalConfig } from 'src/main/type/settings'
 import { ImageAlternativeResult, ImagePathPair } from 'src/main/type/image'
 import { StatusResult } from 'simple-git'
 import { GitImagePaths, GitRepoInfo } from 'src/main/type/git'
@@ -10,7 +10,8 @@ enum IndexIPC {
   SELECT_DIRECTORY = 'select-directory',
   SELECT_IMAGES = 'select-images',
   SELECT_FILE = 'select-file',
-  OPEN_EXTERNAL = 'open-external'
+  OPEN_EXTERNAL = 'open-external',
+  REVEAL_IN_FIE_EXPLORER = 'reveal-in-file-explorer'
 }
 
 enum ProjectIPC {
@@ -47,6 +48,8 @@ const api = {
   selectFile: (defaultPath?: string): Promise<string | null> =>
     ipcRenderer.invoke(IndexIPC.SELECT_FILE, defaultPath),
   openExternal: (url: string) => ipcRenderer.invoke(IndexIPC.OPEN_EXTERNAL, url),
+  revealInFileExplorer: (path: string, mode: RevealMode): Promise<boolean> =>
+    ipcRenderer.invoke(IndexIPC.REVEAL_IN_FIE_EXPLORER, path, mode),
   project: {
     addNewProject: (project: ProjectInfo) =>
       ipcRenderer.invoke(ProjectIPC.ADD_NEW_PROJECT, project),
