@@ -43,4 +43,10 @@ export const registerProjectIpc = (): void => {
       return await projectService.getActiveCompanyCode(configFilePath, companyCodes)
     }
   )
+  ipcMain.handle(
+    ProjectIPC.GET_COMPANY_CONFIG_BY_COMPANY_FOLDER,
+    async (_, companyFolder: CompanyFolder) => {
+      return await projectService.getCompanyConfigByCompanyFolder(companyFolder)
+    }
+  )
 }

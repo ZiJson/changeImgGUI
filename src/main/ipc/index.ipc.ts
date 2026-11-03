@@ -27,7 +27,8 @@ export enum ProjectIPC {
   GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
   GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
   SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
-  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code'
+  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code',
+  GET_COMPANY_CONFIG_BY_COMPANY_FOLDER = 'project:get-company-config-by-company-folder'
 }
 
 export enum ImageIPC {

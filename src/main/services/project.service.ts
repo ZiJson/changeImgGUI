@@ -1,4 +1,4 @@
-import { CompanyFolder, ProjectInfo } from '../type/settings'
+import { CompanyConfig, CompanyFolder, ProjectInfo } from '../type/settings'
 import fs from 'node:fs/promises'
 import * as settingService from './setting.service'
 import path from 'node:path'
@@ -268,6 +268,33 @@ export const findDirectory = async (dir: string, target: string): Promise<string
   return null
 }
 
+export const findFile = async (
+  dir: string,
+  target: string,
+  maxDepth = Infinity,
+  currentDepth = 0
+): Promise<string | null> => {
+  if (currentDepth > maxDepth) return null
+
+  const entries = await fs.readdir(dir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+
+    if (entry.isFile() && entry.name === target) {
+      return fullPath
+    }
+
+    if (entry.isDirectory() && currentDepth < maxDepth) {
+      const result = await findFile(fullPath, target, maxDepth, currentDepth + 1)
+
+      if (result) return result
+    }
+  }
+
+  return null
+}
+
 export const switchCompanyConfig = async (
   configFilePath: string,
   companyCode: string
@@ -394,4 +421,25 @@ export const initializeProjects = async (): Promise<ProjectInfo[]> => {
   }
 
   return projects
+}
+
+export const getCompanyConfigByCompanyFolder = async (
+  companyFolder: CompanyFolder
+): Promise<CompanyConfig> => {
+  const filePath =
+    (await findFile(companyFolder.path, 'config.js', 1)) ||
+    (await findFile(companyFolder.path, 'index.js', 1))
+
+  if (!filePath)
+    return {
+      path: '',
+      content: ''
+    }
+
+  const content = await fs.readFile(filePath, 'utf-8')
+
+  return {
+    path: filePath,
+    content: content
+  }
 }

@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { CompanyFolder, ProjectInfo, RevealMode, TerminalConfig } from 'src/main/type/settings'
+import {
+  CompanyConfig,
+  CompanyFolder,
+  ProjectInfo,
+  RevealMode,
+  TerminalConfig
+} from 'src/main/type/settings'
 import { ImageAlternativeResult, ImagePathPair } from 'src/main/type/image'
 import { StatusResult } from 'simple-git'
 import { GitImagePaths, GitRepoInfo } from 'src/main/type/git'
@@ -23,7 +29,8 @@ enum ProjectIPC {
   GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
   GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
   SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
-  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code'
+  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code',
+  GET_COMPANY_CONFIG_BY_COMPANY_FOLDER = 'project:get-company-config-by-company-folder'
 }
 
 enum ImageIPC {
@@ -65,7 +72,9 @@ const api = {
     switchCompanyConfig: (configFilePath: string, companyCode: string) =>
       ipcRenderer.invoke(ProjectIPC.SWITCH_COMPANY_CONFIG, configFilePath, companyCode),
     getActiveCompanyCode: (configFilePath: string, companyCodes: string[]) =>
-      ipcRenderer.invoke(ProjectIPC.GET_ACTIVE_COMPANY_CODE, configFilePath, companyCodes)
+      ipcRenderer.invoke(ProjectIPC.GET_ACTIVE_COMPANY_CODE, configFilePath, companyCodes),
+    getCompanyConfigByCompanyFolder: (companyFolder: CompanyFolder): Promise<CompanyConfig> =>
+      ipcRenderer.invoke(ProjectIPC.GET_COMPANY_CONFIG_BY_COMPANY_FOLDER, companyFolder)
   },
   image: {
     checkImagesMatch: (props: {

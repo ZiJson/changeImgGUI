@@ -33,7 +33,9 @@ import { cn } from '@renderer/lib/utils'
 import {
   IconArrowsExchange2,
   IconCheck,
+  IconExternalLink,
   IconLibraryPhoto,
+  IconRefresh,
   IconTrash,
   IconX
 } from '@tabler/icons-react'
@@ -50,6 +52,17 @@ import {
 } from '@renderer/components/ui/combobox'
 import { CompanyFolder } from 'src/main/type/settings'
 import { PathExplorer } from '@renderer/components/ui/pathExplorer'
+import {
+  CodeBlock,
+  CodeBlockTitle,
+  CodeBlockHeader,
+  CodeBlockActions,
+  CodeBlockCopyButton,
+  CodeBlockContent,
+  CodeBlockLine
+} from '@renderer/components/ui/code-block'
+import { FileCodeIcon } from 'lucide-react'
+import { useHighlightedCode } from '@renderer/hooks/use-highlighted-code'
 
 const ChangeImg = () => {
   const { projects } = useProjects()
@@ -70,13 +83,17 @@ const ChangeImg = () => {
     replaceImages,
     replaceImagesLoading,
     switchCompanyConfig,
-    activeCompanyCode
+    activeCompanyCode,
+    companyConfig,
+    refetchCompanyConfig
   } = useChangeImg()
   const items = projects.map((p) => ({
     value: p,
     label: p.name
   }))
 
+  const lines = useHighlightedCode(companyConfig?.content || '', 'js')
+  console.log(lines)
   return (
     <div className="flex flex-col gap-4">
       <Card size="sm">
@@ -167,8 +184,56 @@ const ChangeImg = () => {
                 </ItemDescription>
               </ItemContent>
             </Item>
+            <Item variant="outline">
+              <ItemContent>
+                <ItemTitle>盤口 config</ItemTitle>
+                <ItemDescription>
+                  <PathExplorer path={companyConfig?.path} />
+                </ItemDescription>
+              </ItemContent>
+            </Item>
           </CardContent>
         )}
+      </Card>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>盤口 Config</CardTitle>
+          <CardDescription>預覽</CardDescription>
+          <CardAction>
+            <Button variant="ghost" onClick={() => refetchCompanyConfig()}>
+              <IconRefresh />
+            </Button>
+            <Button
+              disabled={!companyConfig?.path}
+              onClick={() => window.api.revealInFileExplorer(companyConfig?.path!, 'open')}
+            >
+              <IconExternalLink />
+              開啟並編輯
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="flex flex-row gap-4">
+          {companyConfig?.content && (
+            <CodeBlock>
+              <CodeBlockHeader>
+                <CodeBlockTitle>
+                  <FileCodeIcon />
+                  {companyConfig?.path}
+                </CodeBlockTitle>
+              </CodeBlockHeader>
+              <CodeBlockContent lineNumbers>
+                {lines.map((line, index) => (
+                  <CodeBlockLine key={index}>{line}</CodeBlockLine>
+                ))}
+              </CodeBlockContent>
+            </CodeBlock>
+          )}
+        </CardContent>
+        <CardFooter>
+          <CardDescription className="flex flex-col gap-1 text-xs">
+            <p>※ 此功能僅提供預覽，欲編輯請開啟檔案在IDE中編輯</p>
+          </CardDescription>
+        </CardFooter>
       </Card>
       <Card size="sm">
         <CardHeader>
@@ -296,8 +361,11 @@ const ChangeImg = () => {
         <CardContent>
           <Item className="h-full">
             <ItemContent>
-              <ItemTitle>切換盤口config</ItemTitle>
-              <ItemDescription>當前使用盤口：{activeCompanyCode}</ItemDescription>
+              <ItemTitle>專案運行盤口</ItemTitle>
+              <ItemDescription>
+                <PathExplorer path={selectedProject?.configPath || ''} shortCut />
+              </ItemDescription>
+              <ItemDescription>當前運行盤口：{activeCompanyCode}</ItemDescription>
             </ItemContent>
             <ItemActions>
               <Button disabled={!selectedCompanyFolder} onClick={() => switchCompanyConfig()}>

@@ -38,6 +38,13 @@ export const useChangeImg = () => {
     enabled: !!project && !!selectedCompanyFolder
   })
 
+  const { data: companyConfig, refetch: refetchCompanyConfig } = useQuery({
+    queryKey: ['company-config-by-company-folder', project, selectedCompanyFolder],
+    queryFn: () => window.api.project.getCompanyConfigByCompanyFolder(selectedCompanyFolder!),
+    refetchInterval: 1000,
+    enabled: !!project && !!selectedCompanyFolder
+  })
+
   const { data: checkResult, refetch: checkImages } = useQuery({
     queryKey: ['check-images-match', project, selectedCompanyFolder, newImagePaths],
     queryFn: () =>
@@ -161,6 +168,8 @@ export const useChangeImg = () => {
     replaceImages,
     replaceImagesLoading,
     switchCompanyConfig,
-    activeCompanyCode
+    activeCompanyCode,
+    companyConfig,
+    refetchCompanyConfig
   }
 }

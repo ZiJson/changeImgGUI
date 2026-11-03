@@ -16,6 +16,11 @@ type CompanyFolder = {
   path: string
 }
 
+type CompanyConfig = {
+  path: string
+  content: string
+}
+
 type TerminalType = 'bash' | 'wsl'
 
 interface TerminalConfig {
