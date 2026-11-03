@@ -94,7 +94,9 @@ app.whenReady().then(async () => {
   })
   try {
     await initializeProjects()
-  } catch {}
+  } catch {
+    console.error('Failed to initialize projects')
+  }
 
   createWindow()
 

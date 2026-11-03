@@ -56,8 +56,6 @@ import {
   CodeBlock,
   CodeBlockTitle,
   CodeBlockHeader,
-  CodeBlockActions,
-  CodeBlockCopyButton,
   CodeBlockContent,
   CodeBlockLine
 } from '@renderer/components/ui/code-block'
@@ -204,8 +202,8 @@ const ChangeImg = () => {
               <IconRefresh />
             </Button>
             <Button
-              disabled={!companyConfig?.path}
-              onClick={() => window.api.revealInFileExplorer(companyConfig?.path!, 'open')}
+              disabled={!companyConfig!.path}
+              onClick={() => window.api.revealInFileExplorer(companyConfig!.path!, 'open')}
             >
               <IconExternalLink />
               開啟並編輯
