@@ -3,11 +3,12 @@ import * as settingService from '../services/setting.service'
 import pty from 'node-pty'
 import os from 'node:os'
 import { TerminalConfig } from '../type/settings'
+import { handle } from '../ipc-handler'
 
 let terminalProcess: pty.IPty | null = null
 
 export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
-  ipcMain.handle('create-terminal', async () => {
+  handle('create-terminal', async () => {
     // 已經有 Terminal 就不重複建立
     if (terminalProcess) {
       terminalProcess.kill()
@@ -48,7 +49,7 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
     terminalProcess?.write(input)
   })
 
-  ipcMain.handle('dispose-terminal', () => {
+  handle('dispose-terminal', () => {
     const terminal = terminalProcess
     if (!terminal) return
 
@@ -56,13 +57,13 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
     terminal.kill()
   })
 
-  ipcMain.handle('terminal-settings', async (): Promise<TerminalConfig> => {
+  handle('terminal-settings', async (): Promise<TerminalConfig> => {
     const settings = await settingService.getSettings()
 
     return { ...settings.terminal, options: ['bash', 'wsl'] }
   })
 
-  ipcMain.handle('terminal-settings-update', async (_, config: TerminalConfig) => {
+  handle('terminal-settings-update', async (_, config: TerminalConfig) => {
     const settings = await settingService.getSettings()
     settings.terminal = config
     await settingService.saveSettings(settings)

@@ -34,3 +34,11 @@ interface RevealOptions {
   path: string
   mode?: RevealMode
 }
+
+export type ErrorLog = {
+  id: string
+  channel: string
+  message: string
+  stack?: string
+  timestamp: number
+}

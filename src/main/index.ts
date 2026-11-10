@@ -7,6 +7,8 @@ import { checkForUpdates, setupAutoUpdater } from './updater'
 import { registerTerminalIPC } from './ipc/terminal.ipc'
 import { initializeProjects } from './services/project.service'
 
+export let mainWindowRef: BrowserWindow | null = null
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -23,6 +25,8 @@ function createWindow(): void {
   })
 
   registerTerminalIPC(mainWindow)
+
+  mainWindowRef = mainWindow
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -56,6 +60,14 @@ protocol.registerSchemesAsPrivileged([
   }
 ])
 
+process.on('uncaughtException', (error) => {
+  console.log('UNCAUGHT EXCEPTION', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.log('UNHANDLED REJECTION', reason)
+})
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -70,7 +82,6 @@ app.whenReady().then(async () => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 

@@ -1,4 +1,5 @@
-import { ipcMain, shell } from 'electron'
+import { shell } from 'electron'
+import { handle } from '../ipc-handler'
 import {
   revealInFileExplorer,
   selectDirectory,
@@ -46,24 +47,21 @@ export enum GitIPC {
 }
 
 const registerIndexIpc = (): void => {
-  ipcMain.handle(IndexIPC.SELECT_DIRECTORY, async (_, defaultPath) => {
+  handle(IndexIPC.SELECT_DIRECTORY, async (_, defaultPath) => {
     return await selectDirectory(defaultPath)
   })
-  ipcMain.handle(IndexIPC.SELECT_IMAGES, async (_, defaultPath) => {
+  handle(IndexIPC.SELECT_IMAGES, async (_, defaultPath) => {
     return await selectImages(defaultPath)
   })
-  ipcMain.handle(IndexIPC.SELECT_FILE, async (_, defaultPath) => {
+  handle(IndexIPC.SELECT_FILE, async (_, defaultPath) => {
     return await selectFile(defaultPath)
   })
-  ipcMain.handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
+  handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
     await shell.openExternal(url)
   })
-  ipcMain.handle(
-    IndexIPC.REVEAL_IN_FIE_EXPLORER,
-    async (_, path: string, mode: RevealMode = 'select') => {
-      return await revealInFileExplorer(path, mode)
-    }
-  )
+  handle(IndexIPC.REVEAL_IN_FIE_EXPLORER, async (_, path: string, mode: RevealMode = 'select') => {
+    return await revealInFileExplorer(path, mode)
+  })
 }
 
 export const registerAllIpc = (): void => {

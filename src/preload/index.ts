@@ -3,6 +3,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 import {
   CompanyConfig,
   CompanyFolder,
+  ErrorLog,
   ProjectInfo,
   RevealMode,
   TerminalConfig
@@ -57,6 +58,15 @@ const api = {
   openExternal: (url: string) => ipcRenderer.invoke(IndexIPC.OPEN_EXTERNAL, url),
   revealInFileExplorer: (path: string, mode: RevealMode): Promise<boolean> =>
     ipcRenderer.invoke(IndexIPC.REVEAL_IN_FIE_EXPLORER, path, mode),
+  onErrorLog: (callback: (error: ErrorLog) => void) => {
+    const listener = (_, error: ErrorLog) => {
+      callback(error)
+    }
+    ipcRenderer.on('error-log', listener)
+    return () => {
+      ipcRenderer.removeListener('error-log', listener)
+    }
+  },
   project: {
     addNewProject: (project: ProjectInfo) =>
       ipcRenderer.invoke(ProjectIPC.ADD_NEW_PROJECT, project),
