@@ -317,9 +317,8 @@ export const switchCompanyConfig = async (
 
   // 3. Find commented declaration matching company code
   const targetPattern = new RegExp(
-    `^\\s*//\\s*(?:const|let|var)\\s+${escapedVariable}\\s*=.*${escapedCompany}`
+    `^\\s*//\\s*(?:const|let|var)\\s+${escapedVariable}\\s*=.*${escapedCompany}(?![-\\w])`
   )
-
   const targetIndexes = lines.reduce<number[]>((indexes, line, index) => {
     if (targetPattern.test(line)) indexes.push(index)
     return indexes
@@ -387,7 +386,15 @@ export const getActiveCompanyCode = async (
 
   const activeLine = match[0]
 
-  return companyCodes.find((code) => activeLine.includes(code)) ?? null
+  return (
+    companyCodes.find((code) => {
+      const escapedCode = escapeRegExp(code)
+
+      const codePattern = new RegExp(`(?<![-\\w])${escapedCode}(?![-\\w])`)
+
+      return codePattern.test(activeLine)
+    }) ?? null
+  )
 }
 
 export const initializeProjects = async (): Promise<ProjectInfo[]> => {
