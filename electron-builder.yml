@@ -42,6 +42,6 @@ publish:
   provider: github
   owner: ZiJson
   repo: changeImgGUI
-  releaseType: release
+  releaseType: draft
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
