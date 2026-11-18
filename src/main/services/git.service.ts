@@ -17,7 +17,7 @@ export const toWslLinuxPath = (projectPath: string) => {
   const match = normalized.match(/^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\(.*)$/i)
 
   if (!match) {
-    throw new Error(`無效的 WSL 路徑：${projectPath}`)
+    throw new Error(`Invalid WSL path: ${projectPath}`)
   }
 
   return {
@@ -52,7 +52,7 @@ const runWslGit = (distro: string, projectPath: string, args: string[]): Promise
       if (code === 0) {
         resolve(stdout)
       } else {
-        reject(new Error(stderr.trim() || `Git 結束代碼 ${code}`))
+        reject(new Error(stderr.trim() || `Git exited with code ${code}`))
       }
     })
   })
@@ -83,7 +83,7 @@ export const getGitStatus = async (projectPath: string): Promise<GitStatus> => {
 
     return parseGitStatus(output)
   } catch (error) {
-    throw serviceError(`無法取得 Git 狀態：${projectPath}。${errorMessage(error)}`, error)
+    throw serviceError(`Failed to get Git status: ${projectPath}. ${errorMessage(error)}`, error)
   }
 }
 
@@ -106,7 +106,10 @@ export const getRepoInfo = async (projectPath: string): Promise<GitRepoInfo> => 
       root: output.trim()
     }
   } catch (error) {
-    throw serviceError(`無法取得 Git 專案根目錄：${projectPath}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to get the Git repository root: ${projectPath}. ${errorMessage(error)}`,
+      error
+    )
   }
 }
 
@@ -138,13 +141,17 @@ const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<B
     })
 
     child.on('error', (error) => {
-      reject(serviceError(`無法執行 git show：${relativePath}。${errorMessage(error)}`, error))
+      reject(serviceError(`Failed to run git show: ${relativePath}. ${errorMessage(error)}`, error))
     })
 
     child.on('close', (code) => {
       if (code !== 0) {
         const detail = Buffer.concat(errors).toString('utf8').trim()
-        reject(new Error(`無法從 Git 讀取圖片：${relativePath}。${detail || `結束代碼 ${code}`}`))
+        reject(
+          new Error(
+            `Failed to read image from Git: ${relativePath}. ${detail || `exit code ${code}`}`
+          )
+        )
         return
       }
 
@@ -160,8 +167,11 @@ export const getGitImagePaths = async (
   try {
     return await readGitImagePaths(projectPath, relativePath)
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith('無法')) throw error
-    throw serviceError(`無法比對 Git 圖片：${relativePath}。${errorMessage(error)}`, error)
+    if (error instanceof Error && error.message.startsWith('Failed to ')) throw error
+    throw serviceError(
+      `Failed to compare Git image: ${relativePath}. ${errorMessage(error)}`,
+      error
+    )
   }
 }
 
@@ -209,15 +219,18 @@ const readGitImagePaths = async (
     fs.stat(currentPath),
     sharp(oldPath).metadata()
   ]).catch((error: unknown) => {
-    throw serviceError(`無法讀取 Git 圖片資訊：${relativePath}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to read Git image metadata: ${relativePath}. ${errorMessage(error)}`,
+      error
+    )
   })
 
   if (!currentMetadata.width || !currentMetadata.height) {
-    throw new Error(`無法讀取目前圖片的尺寸：${currentPath}`)
+    throw new Error(`Failed to read current image dimensions: ${currentPath}`)
   }
 
   if (!oldMetadata.width || !oldMetadata.height) {
-    throw new Error(`無法讀取 Git 版本圖片的尺寸：${oldPath}`)
+    throw new Error(`Failed to read Git image dimensions: ${oldPath}`)
   }
 
   return {

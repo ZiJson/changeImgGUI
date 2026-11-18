@@ -67,13 +67,16 @@ export const getSettings = async (): Promise<AppSettings> => {
     content = await fs.readFile(settingsPath, 'utf-8')
   } catch (error) {
     if (isEnoent(error)) return defaultSettings
-    throw serviceError(`無法讀取設定檔：${settingsPath}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to read settings file: ${settingsPath}. ${errorMessage(error)}`,
+      error
+    )
   }
 
   try {
     return { ...defaultSettings, ...(JSON.parse(content) as Partial<AppSettings>) }
   } catch (error) {
-    throw serviceError(`設定檔格式錯誤：${settingsPath}。${errorMessage(error)}`, error)
+    throw serviceError(`Invalid settings file: ${settingsPath}. ${errorMessage(error)}`, error)
   }
 }
 
@@ -85,7 +88,10 @@ export const saveSettings = async (settings: AppSettings): Promise<void> => {
 
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8')
   } catch (error) {
-    throw serviceError(`無法儲存設定檔：${settingsPath}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to save settings file: ${settingsPath}. ${errorMessage(error)}`,
+      error
+    )
   }
 }
 
@@ -94,7 +100,10 @@ export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
     await fs.rm(tempDir, { recursive: true, force: true })
     await fs.mkdir(tempDir, { recursive: true })
   } catch (error) {
-    throw serviceError(`無法準備圖片暫存資料夾：${tempDir}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to prepare the image temp directory: ${tempDir}. ${errorMessage(error)}`,
+      error
+    )
   }
 
   const usedNames = new Set<string>()
@@ -104,7 +113,7 @@ export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
       const baseName = path.basename(sourcePath)
 
       if (usedNames.has(baseName)) {
-        throw new Error(`暫存圖片檔名重複：${baseName}`)
+        throw new Error(`Duplicate temp image file name: ${baseName}`)
       }
 
       usedNames.add(baseName)
@@ -113,7 +122,10 @@ export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
       try {
         await fs.copyFile(sourcePath, targetPath)
       } catch (error) {
-        throw serviceError(`無法複製圖片到暫存區：${sourcePath}。${errorMessage(error)}`, error)
+        throw serviceError(
+          `Failed to copy image to the temp directory: ${sourcePath}. ${errorMessage(error)}`,
+          error
+        )
       }
 
       return targetPath
@@ -125,14 +137,14 @@ export const revealInFileExplorer = async (path: string, mode: RevealMode = 'sel
   try {
     await fs.access(path)
   } catch (error) {
-    throw serviceError(`找不到路徑：${path}。${errorMessage(error)}`, error)
+    throw serviceError(`Path not found: ${path}. ${errorMessage(error)}`, error)
   }
 
   if (mode === 'open') {
     const openError = await shell.openPath(path)
 
     if (openError) {
-      throw new Error(`無法開啟路徑：${path}。${openError}`)
+      throw new Error(`Failed to open path: ${path}. ${openError}`)
     }
   } else {
     shell.showItemInFolder(path)

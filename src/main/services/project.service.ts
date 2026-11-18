@@ -19,7 +19,7 @@ const readDirectory = async (dir: string): Promise<Dirent[]> => {
   try {
     return await fs.readdir(dir, { withFileTypes: true })
   } catch (error) {
-    throw serviceError(`無法讀取資料夾：${dir}。${errorMessage(error)}`, error)
+    throw serviceError(`Failed to read directory: ${dir}. ${errorMessage(error)}`, error)
   }
 }
 
@@ -35,7 +35,10 @@ export const addNewProject = async (project: ProjectInfo): Promise<void> => {
   try {
     project.companyListPath = (await findDirectory(project.path, 'companyList')) || undefined
   } catch (error) {
-    throw serviceError(`無法搜尋 companyList：${project.path}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to search for companyList: ${project.path}. ${errorMessage(error)}`,
+      error
+    )
   }
 
   settings.projects.push(project)
@@ -49,7 +52,7 @@ export const updateProject = async (project: ProjectInfo): Promise<void> => {
   const index = settings.projects.findIndex((p) => p.path === project.path)
 
   if (index === -1) {
-    throw new Error(`找不到要更新的專案：${project.path}`)
+    throw new Error(`Project to update was not found: ${project.path}`)
   }
 
   settings.projects[index] = project
@@ -63,7 +66,7 @@ export const deleteProject = async (project: ProjectInfo): Promise<void> => {
   const index = settings.projects.findIndex((p) => p.path === project.path)
 
   if (index === -1) {
-    throw new Error(`找不到要刪除的專案：${project.path}`)
+    throw new Error(`Project to delete was not found: ${project.path}`)
   }
 
   settings.projects.splice(index, 1)
@@ -226,7 +229,7 @@ export const getConfigFileByProjectPath = async (projectPath: string): Promise<s
   const configPath = await findDirectory(projectPath, 'config')
 
   if (!configPath) {
-    throw new MissingProjectConfigError(`找不到 config 目錄：${projectPath}`)
+    throw new MissingProjectConfigError(`Config directory not found: ${projectPath}`)
   }
 
   const entries = await readDirectory(configPath)
@@ -243,7 +246,7 @@ export const getConfigFileByProjectPath = async (projectPath: string): Promise<s
 
   if (!indexFile) {
     throw new MissingProjectConfigError(
-      `在 ${configPath} 找不到設定檔（multipage.project 或 index）`
+      `Config file not found in ${configPath}. Expected multipage.project or index`
     )
   }
 
@@ -301,7 +304,7 @@ export const switchCompanyConfig = async (
   configFilePath: string,
   companyCode: string
 ): Promise<void> => {
-  const content = await readTextFile(configFilePath, '盤口設定檔')
+  const content = await readTextFile(configFilePath, 'company config file')
   const lines = content.split(/\r\n|\n|\r/)
 
   // 1. Detect exported variable name
@@ -328,13 +331,13 @@ export const switchCompanyConfig = async (
 
   if (activeIndexes.length !== 1) {
     throw new Error(
-      `「${variableName}」應該恰有一個啟用中的宣告，目前在 ${configFilePath} 找到 ${activeIndexes.length} 個`
+      `Expected exactly one active declaration for "${variableName}" in ${configFilePath}, found ${activeIndexes.length}`
     )
   }
 
   if (targetIndexes.length !== 1) {
     throw new Error(
-      `「${companyCode}」應該恰有一個被註解的宣告，目前在 ${configFilePath} 找到 ${targetIndexes.length} 個`
+      `Expected exactly one commented declaration for "${companyCode}" in ${configFilePath}, found ${targetIndexes.length}`
     )
   }
 
@@ -356,7 +359,10 @@ export const switchCompanyConfig = async (
   try {
     await fs.writeFile(configFilePath, lines.join(lineEnding), 'utf-8')
   } catch (error) {
-    throw serviceError(`無法寫入盤口設定檔：${configFilePath}。${errorMessage(error)}`, error)
+    throw serviceError(
+      `Failed to write company config file: ${configFilePath}. ${errorMessage(error)}`,
+      error
+    )
   }
 }
 
@@ -364,7 +370,7 @@ const readTextFile = async (filePath: string, label: string): Promise<string> =>
   try {
     return await fs.readFile(filePath, 'utf-8')
   } catch (error) {
-    throw serviceError(`無法讀取${label}：${filePath}。${errorMessage(error)}`, error)
+    throw serviceError(`Failed to read ${label}: ${filePath}. ${errorMessage(error)}`, error)
   }
 }
 
@@ -377,7 +383,7 @@ const getExportedVariableName = (content: string, filePath: string): string => {
     if (match) return match[1]
   }
 
-  throw new Error(`無法判斷匯出的變數名稱：${filePath}`)
+  throw new Error(`Cannot detect the exported variable name: ${filePath}`)
 }
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -386,7 +392,7 @@ export const getActiveCompanyCode = async (
   configFilePath: string,
   companyCodes: string[]
 ): Promise<string | null> => {
-  const content = await readTextFile(configFilePath, '盤口設定檔')
+  const content = await readTextFile(configFilePath, 'company config file')
   const variableName = getExportedVariableName(content, configFilePath)
 
   const escapedVariable = escapeRegExp(variableName)
@@ -395,7 +401,7 @@ export const getActiveCompanyCode = async (
 
   const match = content.match(activePattern)
   if (!match) {
-    throw new Error(`找不到啟用中的宣告「${variableName}」：${configFilePath}`)
+    throw new Error(`Active declaration for "${variableName}" was not found: ${configFilePath}`)
   }
 
   const activeLine = match[0]
@@ -440,7 +446,7 @@ export const initializeProjects = async (): Promise<ProjectInfo[]> => {
         return updatedProject
       } catch (error) {
         throw serviceError(
-          `無法初始化專案「${project.name}」：${project.path}。${errorMessage(error)}`,
+          `Failed to initialize project "${project.name}": ${project.path}. ${errorMessage(error)}`,
           error
         )
       }
@@ -468,7 +474,7 @@ export const getCompanyConfigByCompanyFolder = async (
       content: ''
     }
 
-  const content = await readTextFile(filePath, '盤口設定')
+  const content = await readTextFile(filePath, 'company config')
 
   return {
     path: filePath,
