@@ -1,11 +1,15 @@
-# Agent 規則
+# Agent rules
 
-## 公司專案結構
+## Language
 
-這個 repo 是操作公司 web 專案的桌面工具。專案選擇、`companyList`、盤口資料夾、config 切換，以及圖片命名、轉檔、壓縮與替換，都依公司專案的目錄與檔案格式實作。
+Write rules and skills in English.
 
-Cloud Agent 不要為了驗證這些功能，自行假設或建立公司專案結構。不要新增假的 `companyList`、盤口 config、favicon 或替換圖片樣本來走完整條流程。
+## Company project layout
 
-這些流程由本機 agent 測試。使用者之後若提供測試用公司專案，再依那個專案測試。
+This repository is a desktop tool for the company's web projects. Project selection, `companyList`, company folders, config switching, and image rename, convert, compress, and replace all follow that project layout.
 
-沒有測試用公司專案時，Cloud Agent 只驗證這個工具本身：依賴安裝、型別檢查，以及應用程式能啟動。缺少公司專案樣本時，該流程不在本次驗證範圍。
+Cloud Agents must not invent a company project layout to test these flows. Do not add fake `companyList` directories, company configs, favicons, or replacement images to walk through the full flow.
+
+Test these flows with a local agent, or with a company project the user supplies later.
+
+Without a supplied company project, a Cloud Agent only verifies this tool: dependency install, typecheck, and that the application starts. The company-project flow stays out of scope until a real project is provided.
