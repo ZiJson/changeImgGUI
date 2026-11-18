@@ -6,6 +6,7 @@ import { app } from 'electron'
 import { spawn } from 'child_process'
 import sharp from 'sharp'
 import { createHash } from 'crypto'
+import { errorMessage, serviceError } from './service-error'
 
 export const isWslPath = (projectPath: string): boolean => {
   return /^\\\\wsl(?:\.localhost|\\$)\\/i.test(projectPath.replaceAll('/', '\\'))
@@ -16,7 +17,7 @@ export const toWslLinuxPath = (projectPath: string) => {
   const match = normalized.match(/^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\(.*)$/i)
 
   if (!match) {
-    throw new Error(`Invalid WSL path: ${projectPath}`)
+    throw new Error(`無效的 WSL 路徑：${projectPath}`)
   }
 
   return {
@@ -51,53 +52,61 @@ const runWslGit = (distro: string, projectPath: string, args: string[]): Promise
       if (code === 0) {
         resolve(stdout)
       } else {
-        reject(new Error(stderr || `Git exited with code ${code}`))
+        reject(new Error(stderr.trim() || `Git 結束代碼 ${code}`))
       }
     })
   })
 }
 
 export const getGitStatus = async (projectPath: string): Promise<GitStatus> => {
-  if (!isWslPath(projectPath)) {
-    const git = simpleGit(projectPath)
-    const status = await git.status()
+  try {
+    if (!isWslPath(projectPath)) {
+      const git = simpleGit(projectPath)
+      const status = await git.status()
 
-    return {
-      current: status.current,
-      tracking: status.tracking,
-      isClean: status.isClean(),
-      modified: status.modified,
-      staged: status.staged,
-      not_added: status.not_added,
-      deleted: status.deleted,
-      renamed: status.renamed.map((file) => file.to),
-      conflicted: status.conflicted
+      return {
+        current: status.current,
+        tracking: status.tracking,
+        isClean: status.isClean(),
+        modified: status.modified,
+        staged: status.staged,
+        not_added: status.not_added,
+        deleted: status.deleted,
+        renamed: status.renamed.map((file) => file.to),
+        conflicted: status.conflicted
+      }
     }
+
+    const { distro, linuxPath } = toWslLinuxPath(projectPath)
+
+    const output = await runWslGit(distro, linuxPath, ['status', '--porcelain=v1', '-b'])
+
+    return parseGitStatus(output)
+  } catch (error) {
+    throw serviceError(`無法取得 Git 狀態：${projectPath}。${errorMessage(error)}`, error)
   }
-
-  const { distro, linuxPath } = toWslLinuxPath(projectPath)
-
-  const output = await runWslGit(distro, linuxPath, ['status', '--porcelain=v1', '-b'])
-
-  return parseGitStatus(output)
 }
 
 export const getRepoInfo = async (projectPath: string): Promise<GitRepoInfo> => {
-  if (!isWslPath(projectPath)) {
-    const git = simpleGit(projectPath)
-    const root = await git.revparse(['--show-toplevel'])
+  try {
+    if (!isWslPath(projectPath)) {
+      const git = simpleGit(projectPath)
+      const root = await git.revparse(['--show-toplevel'])
+
+      return {
+        root: root.trim()
+      }
+    }
+
+    const { distro, linuxPath } = toWslLinuxPath(projectPath)
+
+    const output = await runWslGit(distro, linuxPath, ['rev-parse', '--show-toplevel'])
 
     return {
-      root: root.trim()
+      root: output.trim()
     }
-  }
-
-  const { distro, linuxPath } = toWslLinuxPath(projectPath)
-
-  const output = await runWslGit(distro, linuxPath, ['rev-parse', '--show-toplevel'])
-
-  return {
-    root: output.trim()
+  } catch (error) {
+    throw serviceError(`無法取得 Git 專案根目錄：${projectPath}。${errorMessage(error)}`, error)
   }
 }
 
@@ -128,11 +137,14 @@ const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<B
       errors.push(chunk)
     })
 
-    child.on('error', reject)
+    child.on('error', (error) => {
+      reject(serviceError(`無法執行 git show：${relativePath}。${errorMessage(error)}`, error))
+    })
 
     child.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(Buffer.concat(errors).toString('utf8') || `git show failed: ${code}`))
+        const detail = Buffer.concat(errors).toString('utf8').trim()
+        reject(new Error(`無法從 Git 讀取圖片：${relativePath}。${detail || `結束代碼 ${code}`}`))
         return
       }
 
@@ -142,6 +154,18 @@ const getGitImageBuffer = (projectPath: string, relativePath: string): Promise<B
 }
 
 export const getGitImagePaths = async (
+  projectPath: string,
+  relativePath: string
+): Promise<GitImagePaths> => {
+  try {
+    return await readGitImagePaths(projectPath, relativePath)
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('無法')) throw error
+    throw serviceError(`無法比對 Git 圖片：${relativePath}。${errorMessage(error)}`, error)
+  }
+}
+
+const readGitImagePaths = async (
   projectPath: string,
   relativePath: string
 ): Promise<GitImagePaths> => {
@@ -184,19 +208,29 @@ export const getGitImagePaths = async (
     sharp(currentPath).metadata(),
     fs.stat(currentPath),
     sharp(oldPath).metadata()
-  ])
+  ]).catch((error: unknown) => {
+    throw serviceError(`無法讀取 Git 圖片資訊：${relativePath}。${errorMessage(error)}`, error)
+  })
+
+  if (!currentMetadata.width || !currentMetadata.height) {
+    throw new Error(`無法讀取目前圖片的尺寸：${currentPath}`)
+  }
+
+  if (!oldMetadata.width || !oldMetadata.height) {
+    throw new Error(`無法讀取 Git 版本圖片的尺寸：${oldPath}`)
+  }
 
   return {
     current: {
       path: currentPath,
-      width: currentMetadata.width ?? 0,
-      height: currentMetadata.height ?? 0,
+      width: currentMetadata.width,
+      height: currentMetadata.height,
       size: currentStat.size
     },
     old: {
       path: oldPath,
-      width: oldMetadata.width ?? 0,
-      height: oldMetadata.height ?? 0,
+      width: oldMetadata.width,
+      height: oldMetadata.height,
       size: buffer.length
     }
   }

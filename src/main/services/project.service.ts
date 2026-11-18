@@ -1,19 +1,41 @@
 import type { CompanyConfig, CompanyFolder, ProjectInfo } from '../../shared/settings'
+import type { Dirent } from 'node:fs'
 import fs from 'node:fs/promises'
 import * as settingService from './setting.service'
 import path from 'node:path'
+import { errorMessage, serviceError } from './service-error'
+
+class MissingProjectConfigError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'MissingProjectConfigError'
+  }
+}
+
+const isMissingProjectConfigError = (error: unknown): error is MissingProjectConfigError =>
+  error instanceof MissingProjectConfigError
+
+const readDirectory = async (dir: string): Promise<Dirent[]> => {
+  try {
+    return await fs.readdir(dir, { withFileTypes: true })
+  } catch (error) {
+    throw serviceError(`無法讀取資料夾：${dir}。${errorMessage(error)}`, error)
+  }
+}
 
 export const addNewProject = async (project: ProjectInfo): Promise<void> => {
   const settings = await settingService.getSettings()
+
   try {
     project.configPath = (await getConfigFileByProjectPath(project.path)) || undefined
   } catch (error) {
-    console.error(error)
+    if (!isMissingProjectConfigError(error)) throw error
   }
+
   try {
     project.companyListPath = (await findDirectory(project.path, 'companyList')) || undefined
   } catch (error) {
-    console.error(error)
+    throw serviceError(`無法搜尋 companyList：${project.path}。${errorMessage(error)}`, error)
   }
 
   settings.projects.push(project)
@@ -26,9 +48,11 @@ export const updateProject = async (project: ProjectInfo): Promise<void> => {
 
   const index = settings.projects.findIndex((p) => p.path === project.path)
 
-  if (index !== -1) {
-    settings.projects[index] = project
+  if (index === -1) {
+    throw new Error(`找不到要更新的專案：${project.path}`)
   }
+
+  settings.projects[index] = project
 
   await settingService.saveSettings(settings)
 }
@@ -38,9 +62,11 @@ export const deleteProject = async (project: ProjectInfo): Promise<void> => {
 
   const index = settings.projects.findIndex((p) => p.path === project.path)
 
-  if (index !== -1) {
-    settings.projects.splice(index, 1)
+  if (index === -1) {
+    throw new Error(`找不到要刪除的專案：${project.path}`)
   }
+
+  settings.projects.splice(index, 1)
 
   await settingService.saveSettings(settings)
 }
@@ -57,9 +83,7 @@ export const getCompanyFolderList = async (project: ProjectInfo): Promise<Compan
     return []
   }
 
-  const entries = await fs.readdir(companyListPath, {
-    withFileTypes: true
-  })
+  const entries = await readDirectory(companyListPath)
 
   return entries
     .filter((entry) => entry.isDirectory())
@@ -80,13 +104,7 @@ export const getFavIconByCompanyFolder = async (companyFolder: CompanyFolder): P
       // 目前資料夾沒有 favicon.ico，繼續往下搜尋
     }
 
-    let entries
-
-    try {
-      entries = await fs.readdir(folderPath, { withFileTypes: true })
-    } catch {
-      return ''
-    }
+    const entries = await readDirectory(folderPath)
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue
@@ -108,13 +126,7 @@ export const getImageFolderByCompanyFolder = async (
   const imageExtensions = new Set(['.webp', '.png', '.jpg'])
 
   const search = async (folderPath: string): Promise<string> => {
-    let entries
-
-    try {
-      entries = await fs.readdir(folderPath, { withFileTypes: true })
-    } catch {
-      return ''
-    }
+    const entries = await readDirectory(folderPath)
 
     // 計算目前資料夾中的圖片數量（不包含子資料夾）
     const imageCount = entries.filter(
@@ -169,13 +181,7 @@ export const getImageAlternative = async (props: {
 
   if (!imageFolder) return alternatives
 
-  let entries
-
-  try {
-    entries = await fs.readdir(imageFolder, { withFileTypes: true })
-  } catch {
-    return alternatives
-  }
+  const entries = await readDirectory(imageFolder)
 
   const oldImages = entries
     .filter(
@@ -220,36 +226,32 @@ export const getConfigFileByProjectPath = async (projectPath: string): Promise<s
   const configPath = await findDirectory(projectPath, 'config')
 
   if (!configPath) {
-    throw new Error(`Config directory not found: ${projectPath}`)
+    throw new MissingProjectConfigError(`找不到 config 目錄：${projectPath}`)
   }
 
-  try {
-    const entries = await fs.readdir(configPath, { withFileTypes: true })
+  const entries = await readDirectory(configPath)
 
-    const multipageFile = entries.find(
-      (entry) => entry.isFile() && /^multipage\.project(\..+)?$/.test(entry.name)
-    )
+  const multipageFile = entries.find(
+    (entry) => entry.isFile() && /^multipage\.project(\..+)?$/.test(entry.name)
+  )
 
-    if (multipageFile) {
-      return path.join(configPath, multipageFile.name)
-    }
-  } catch {
-    // Fallback to index file
+  if (multipageFile) {
+    return path.join(configPath, multipageFile.name)
   }
-
-  const entries = await fs.readdir(configPath, { withFileTypes: true })
 
   const indexFile = entries.find((entry) => entry.isFile() && /^index(\..+)?$/.test(entry.name))
 
   if (!indexFile) {
-    throw new Error(`Config file not found in: ${configPath}`)
+    throw new MissingProjectConfigError(
+      `在 ${configPath} 找不到設定檔（multipage.project 或 index）`
+    )
   }
 
   return path.join(configPath, indexFile.name)
 }
 
 export const findDirectory = async (dir: string, target: string): Promise<string | null> => {
-  const entries = await fs.readdir(dir, { withFileTypes: true })
+  const entries = await readDirectory(dir)
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue
@@ -276,7 +278,7 @@ export const findFile = async (
 ): Promise<string | null> => {
   if (currentDepth > maxDepth) return null
 
-  const entries = await fs.readdir(dir, { withFileTypes: true })
+  const entries = await readDirectory(dir)
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name)
@@ -299,11 +301,11 @@ export const switchCompanyConfig = async (
   configFilePath: string,
   companyCode: string
 ): Promise<void> => {
-  const content = await fs.readFile(configFilePath, 'utf-8')
+  const content = await readTextFile(configFilePath, '盤口設定檔')
   const lines = content.split(/\r\n|\n|\r/)
 
   // 1. Detect exported variable name
-  const variableName = getExportedVariableName(content)
+  const variableName = getExportedVariableName(content, configFilePath)
   const escapedVariable = escapeRegExp(variableName)
   const escapedCompany = escapeRegExp(companyCode)
 
@@ -326,13 +328,13 @@ export const switchCompanyConfig = async (
 
   if (activeIndexes.length !== 1) {
     throw new Error(
-      `Expected exactly one active declaration for "${variableName}", found ${activeIndexes.length}`
+      `「${variableName}」應該恰有一個啟用中的宣告，目前在 ${configFilePath} 找到 ${activeIndexes.length} 個`
     )
   }
 
   if (targetIndexes.length !== 1) {
     throw new Error(
-      `Expected exactly one commented declaration for "${companyCode}", found ${targetIndexes.length}`
+      `「${companyCode}」應該恰有一個被註解的宣告，目前在 ${configFilePath} 找到 ${targetIndexes.length} 個`
     )
   }
 
@@ -351,10 +353,22 @@ export const switchCompanyConfig = async (
   // 7. Preserve original line endings
   const lineEnding = content.includes('\r\n') ? '\r\n' : '\n'
 
-  await fs.writeFile(configFilePath, lines.join(lineEnding), 'utf-8')
+  try {
+    await fs.writeFile(configFilePath, lines.join(lineEnding), 'utf-8')
+  } catch (error) {
+    throw serviceError(`無法寫入盤口設定檔：${configFilePath}。${errorMessage(error)}`, error)
+  }
 }
 
-const getExportedVariableName = (content: string): string => {
+const readTextFile = async (filePath: string, label: string): Promise<string> => {
+  try {
+    return await fs.readFile(filePath, 'utf-8')
+  } catch (error) {
+    throw serviceError(`無法讀取${label}：${filePath}。${errorMessage(error)}`, error)
+  }
+}
+
+const getExportedVariableName = (content: string, filePath: string): string => {
   const patterns = [/module\.exports\s*=\s*(\w+)\s*;?/, /export\s+default\s+(\w+)\s*;?/]
 
   for (const pattern of patterns) {
@@ -363,7 +377,7 @@ const getExportedVariableName = (content: string): string => {
     if (match) return match[1]
   }
 
-  throw new Error('Cannot detect exported variable')
+  throw new Error(`無法判斷匯出的變數名稱：${filePath}`)
 }
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -372,8 +386,8 @@ export const getActiveCompanyCode = async (
   configFilePath: string,
   companyCodes: string[]
 ): Promise<string | null> => {
-  const content = await fs.readFile(configFilePath, 'utf-8')
-  const variableName = getExportedVariableName(content)
+  const content = await readTextFile(configFilePath, '盤口設定檔')
+  const variableName = getExportedVariableName(content, configFilePath)
 
   const escapedVariable = escapeRegExp(variableName)
 
@@ -381,7 +395,7 @@ export const getActiveCompanyCode = async (
 
   const match = content.match(activePattern)
   if (!match) {
-    throw new Error(`Active declaration not found: ${variableName}`)
+    throw new Error(`找不到啟用中的宣告「${variableName}」：${configFilePath}`)
   }
 
   const activeLine = match[0]
@@ -404,21 +418,32 @@ export const initializeProjects = async (): Promise<ProjectInfo[]> => {
 
   const projects = await Promise.all(
     settings.projects.map(async (project) => {
-      const updatedProject = { ...project }
+      try {
+        const updatedProject = { ...project }
 
-      if (!updatedProject.configPath) {
-        updatedProject.configPath = await getConfigFileByProjectPath(updatedProject.path)
-        hasChanges = true
+        if (!updatedProject.configPath) {
+          try {
+            updatedProject.configPath = await getConfigFileByProjectPath(updatedProject.path)
+            hasChanges = true
+          } catch (error) {
+            if (!isMissingProjectConfigError(error)) throw error
+          }
+        }
+
+        if (!updatedProject.companyListPath) {
+          updatedProject.companyListPath =
+            (await findDirectory(updatedProject.path, 'companyList')) || undefined
+
+          hasChanges = true
+        }
+
+        return updatedProject
+      } catch (error) {
+        throw serviceError(
+          `無法初始化專案「${project.name}」：${project.path}。${errorMessage(error)}`,
+          error
+        )
       }
-
-      if (!updatedProject.companyListPath) {
-        updatedProject.companyListPath =
-          (await findDirectory(updatedProject.path, 'companyList')) || undefined
-
-        hasChanges = true
-      }
-
-      return updatedProject
     })
   )
 
@@ -443,7 +468,7 @@ export const getCompanyConfigByCompanyFolder = async (
       content: ''
     }
 
-  const content = await fs.readFile(filePath, 'utf-8')
+  const content = await readTextFile(filePath, '盤口設定')
 
   return {
     path: filePath,

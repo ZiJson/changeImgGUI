@@ -6,6 +6,8 @@ import { registerAllIpc } from './ipc/index.ipc'
 import { checkForUpdates, setupAutoUpdater } from './updater'
 import { registerTerminalIPC } from './ipc/terminal.ipc'
 import { initializeProjects } from './services/project.service'
+import { AppChannel } from '../shared/ipc'
+import { errorMessage } from './services/service-error'
 
 export let mainWindowRef: BrowserWindow | null = null
 
@@ -101,16 +103,29 @@ app.whenReady().then(async () => {
       callback({ error: -2 }) // FAILED
     }
   })
+  let initializeError: unknown = null
+
   try {
     await initializeProjects()
-  } catch {
-    console.error('Failed to initialize projects')
+  } catch (error) {
+    initializeError = error
+    console.error(errorMessage(error))
   }
 
   createWindow()
 
-  // 等 App 啟動後再檢查更新
+  // 等 App 啟動後再檢查更新，並把啟動時的初始化錯誤送進 error log
   setTimeout(() => {
+    if (initializeError) {
+      mainWindowRef?.webContents.send(AppChannel.errorLog, {
+        id: crypto.randomUUID(),
+        channel: 'project:initialize',
+        message: errorMessage(initializeError),
+        stack: initializeError instanceof Error ? initializeError.stack : undefined,
+        timestamp: Date.now()
+      })
+    }
+
     void checkForUpdates()
   }, 3000)
 
