@@ -27,6 +27,7 @@ import {
   SelectItem
 } from '@renderer/components/ui/select'
 import { Spinner } from '@renderer/components/ui/spinner'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import { useChangeImg } from '@renderer/hooks/useChangeImg'
 import { useProjects } from '@renderer/hooks/useProjects'
 import { cn } from '@renderer/lib/utils'
@@ -61,6 +62,7 @@ import {
 } from '@renderer/components/ui/code-block'
 import { FileCodeIcon } from 'lucide-react'
 import { useHighlightedCode } from '@renderer/hooks/use-highlighted-code'
+import { useState } from 'react'
 
 const ChangeImg = () => {
   const { projects } = useProjects()
@@ -68,30 +70,46 @@ const ChangeImg = () => {
     selectedProject,
     selectProject,
     companyFolderList,
+    isLoadingCompanyFolderList,
     selectCompanyFolder,
     selectedCompanyFolder,
     favIcon,
+    isLoadingFavIcon,
     imageFolder,
+    isLoadingImageFolder,
     selectImages,
     clearImages,
     newImagePaths,
     checkResult,
+    isCheckingImages,
     fixImages,
     fixLoading,
     replaceImages,
     replaceImagesLoading,
     switchCompanyConfig,
+    isSwitchingCompany,
     activeCompanyCode,
+    isLoadingActiveCompanyCode,
     companyConfig,
+    isLoadingCompanyConfig,
     refetchCompanyConfig
   } = useChangeImg()
+  const [isRefreshingConfig, setIsRefreshingConfig] = useState(false)
   const items = projects.map((p) => ({
     value: p,
     label: p.name
   }))
 
   const lines = useHighlightedCode(companyConfig?.content || '', 'js')
-  console.log(lines)
+
+  const onRefreshConfig = async () => {
+    setIsRefreshingConfig(true)
+    try {
+      await refetchCompanyConfig()
+    } finally {
+      setIsRefreshingConfig(false)
+    }
+  }
   return (
     <div className="flex flex-col gap-4">
       <Card size="sm">
@@ -133,8 +151,10 @@ const ChangeImg = () => {
               onValueChange={selectCompanyFolder}
             >
               <ComboboxInput
-                placeholder="選擇盤口"
-                disabled={!companyFolderList?.length}
+                placeholder={isLoadingCompanyFolderList ? '讀取盤口...' : '選擇盤口'}
+                disabled={
+                  !selectedProject || isLoadingCompanyFolderList || !companyFolderList?.length
+                }
                 value={selectedCompanyFolder?.name}
                 className="w-[180px]"
               />
@@ -165,11 +185,19 @@ const ChangeImg = () => {
                   <ItemContent>
                     <ItemTitle>Favicon</ItemTitle>
                     <ItemDescription>
-                      <PathExplorer path={favIcon} />
+                      {isLoadingFavIcon ? (
+                        <Skeleton className="h-4 w-40" />
+                      ) : (
+                        <PathExplorer path={favIcon} />
+                      )}
                     </ItemDescription>
                   </ItemContent>
                   <ItemMedia variant="image">
-                    <LocalImg src={favIcon} alt="favicon" className="object-cover" />
+                    {isLoadingFavIcon ? (
+                      <Skeleton className="size-10" />
+                    ) : (
+                      <LocalImg src={favIcon} alt="favicon" className="object-cover" />
+                    )}
                   </ItemMedia>
                 </div>
               }
@@ -178,7 +206,11 @@ const ChangeImg = () => {
               <ItemContent>
                 <ItemTitle>靜態圖片目錄</ItemTitle>
                 <ItemDescription>
-                  <PathExplorer path={imageFolder} />
+                  {isLoadingImageFolder ? (
+                    <Skeleton className="h-4 w-40" />
+                  ) : (
+                    <PathExplorer path={imageFolder} />
+                  )}
                 </ItemDescription>
               </ItemContent>
             </Item>
@@ -186,7 +218,11 @@ const ChangeImg = () => {
               <ItemContent>
                 <ItemTitle>盤口 config</ItemTitle>
                 <ItemDescription>
-                  <PathExplorer path={companyConfig?.path} />
+                  {isLoadingCompanyConfig ? (
+                    <Skeleton className="h-4 w-40" />
+                  ) : (
+                    <PathExplorer path={companyConfig?.path} />
+                  )}
                 </ItemDescription>
               </ItemContent>
             </Item>
@@ -198,8 +234,8 @@ const ChangeImg = () => {
           <CardTitle>盤口 Config</CardTitle>
           <CardDescription>預覽</CardDescription>
           <CardAction>
-            <Button variant="ghost" onClick={() => refetchCompanyConfig()}>
-              <IconRefresh />
+            <Button variant="ghost" onClick={onRefreshConfig} disabled={isRefreshingConfig}>
+              {isRefreshingConfig ? <Spinner data-icon="inline-start" /> : <IconRefresh />}
             </Button>
             <Button
               disabled={!companyConfig?.path}
@@ -211,6 +247,7 @@ const ChangeImg = () => {
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-row gap-4">
+          {isLoadingCompanyConfig && <Skeleton className="h-40 w-full" />}
           {companyConfig?.content && (
             <CodeBlock>
               <CodeBlockHeader>
@@ -257,29 +294,39 @@ const ChangeImg = () => {
         {newImagePaths.length > 0 && (
           <CardContent className="flex flex-row gap-4">
             <div className="flex-1">
-              <div className="bg-muted h-fit">
-                {checkResult?.results.map((p) => {
-                  return (
-                    <Item key={p.newPath} size="xs" className="h-10">
-                      <ItemContent className="flex flex-row items-center justify-between gap-2 text-xs">
-                        <div className="flex-3">{getNameFromPath(p.newPath)}</div>
-                        <IconArrowsExchange2 className={cn('text-muted-foreground flex-1')} />
-                        <div className="flex-3 text-right">
-                          {getNameFromPath(p.oldPath || '') || '_'}
-                        </div>
-                      </ItemContent>
-                    </Item>
-                  )
-                })}
-              </div>
+              {isCheckingImages && !checkResult ? (
+                <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                  <Spinner />
+                  比對圖片中
+                </div>
+              ) : (
+                <div className="bg-muted h-fit">
+                  {checkResult?.results.map((pair) => {
+                    return (
+                      <Item key={pair.newPath} size="xs" className="h-10">
+                        <ItemContent className="flex flex-row items-center justify-between gap-2 text-xs">
+                          <div className="flex-3">{getNameFromPath(pair.newPath)}</div>
+                          <IconArrowsExchange2 className={cn('text-muted-foreground flex-1')} />
+                          <div className="flex-3 text-right">
+                            {getNameFromPath(pair.oldPath || '') || '_'}
+                          </div>
+                        </ItemContent>
+                      </Item>
+                    )
+                  })}
+                </div>
+              )}
               <CardDescription
                 className={cn(
-                  'mt-2 text-right',
+                  'mt-2 flex items-center justify-end gap-2 text-right',
                   checkResult?.summary.unmatched &&
                     checkResult?.summary.unmatched > 0 &&
                     'text-destructive'
                 )}
-              >{`${checkResult?.summary.matched} / ${checkResult?.summary.total} 已匹配`}</CardDescription>
+              >
+                {isCheckingImages && checkResult && <Spinner />}
+                {`${checkResult?.summary.matched ?? 0} / ${checkResult?.summary.total ?? 0} 已匹配`}
+              </CardDescription>
             </div>
             <div className="flex flex-col gap-4">
               <div className="bg-muted">
@@ -322,7 +369,7 @@ const ChangeImg = () => {
                               disabled={key === 'aspectRatioMatches' || fixLoading || !needFix}
                               onClick={() => fixImages(key as keyof ImageChecks)}
                             >
-                              {fixLoading ? <Spinner /> : '修正'}
+                              {fixLoading ? <Spinner data-icon="inline-start" /> : '修正'}
                             </Button>
                             <Badge className="opacity-0">
                               {value ? <IconCheck /> : <IconX />}
@@ -339,7 +386,7 @@ const ChangeImg = () => {
                 disabled={checkResult?.summary.unmatched !== 0 || replaceImagesLoading}
                 onClick={replaceImages}
               >
-                {replaceImagesLoading ? <Spinner /> : null}
+                {replaceImagesLoading && <Spinner data-icon="inline-start" />}
                 替換圖片
               </Button>
             </div>
@@ -363,10 +410,16 @@ const ChangeImg = () => {
               <ItemDescription>
                 <PathExplorer path={selectedProject?.configPath || ''} shortCut />
               </ItemDescription>
-              <ItemDescription>當前運行盤口：{activeCompanyCode}</ItemDescription>
+              <ItemDescription>
+                當前運行盤口：{isLoadingActiveCompanyCode ? '讀取中...' : activeCompanyCode}
+              </ItemDescription>
             </ItemContent>
             <ItemActions>
-              <Button disabled={!selectedCompanyFolder} onClick={() => switchCompanyConfig()}>
+              <Button
+                disabled={!selectedCompanyFolder || isSwitchingCompany}
+                onClick={() => switchCompanyConfig()}
+              >
+                {isSwitchingCompany && <Spinner data-icon="inline-start" />}
                 切換 {selectedCompanyFolder?.name}
               </Button>
             </ItemActions>

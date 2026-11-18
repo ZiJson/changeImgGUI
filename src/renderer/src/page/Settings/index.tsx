@@ -13,7 +13,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '@renderer/components/ui/collapsible'
-import { Field, FieldContent, FieldLabel, FieldTitle } from '@renderer/components/ui/field'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@renderer/components/ui/dialog'
+import {
+  Field,
+  FieldContent,
+  FieldGroup,
+  FieldLabel,
+  FieldTitle
+} from '@renderer/components/ui/field'
 import {
   Item,
   ItemActions,
@@ -22,17 +36,37 @@ import {
   ItemMedia,
   ItemTitle
 } from '@renderer/components/ui/item'
+import { Input } from '@renderer/components/ui/input'
 import { PathExplorer } from '@renderer/components/ui/pathExplorer'
 import { RadioGroup, RadioGroupItem } from '@renderer/components/ui/radio-group'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { useProjects } from '@renderer/hooks/useProjects'
 import { useSetting } from '@renderer/hooks/useSetting'
 import { IconChevronDown, IconFolderOpen } from '@tabler/icons-react'
+import { useState } from 'react'
 import type { ProjectInfo } from 'src/shared/settings'
 
 const Settings = () => {
-  const { projects, addNewProject, deleteProject, isLoading } = useProjects()
-  const { terminalConfig, onTerminalChange } = useSetting()
+  const { projects, pickNewProject, createProject, isAdding, isPickingProject, isProjectsLoading } =
+    useProjects()
+  const { terminalConfig, onTerminalChange, isLoadingTerminalConfig, isUpdatingTerminal } =
+    useSetting()
+  const [draft, setDraft] = useState<ProjectInfo | null>(null)
+  const [name, setName] = useState('')
+
+  const onAdd = async () => {
+    const next = await pickNewProject()
+    if (!next) return
+    setDraft(next)
+    setName(next.name)
+  }
+
+  const onConfirmName = async () => {
+    if (!draft || isAdding) return
+    await createProject({ ...draft, name })
+    setDraft(null)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -44,52 +78,126 @@ const Settings = () => {
             盤口路徑
           </Badge>
           <CardAction>
-            <Button size="sm" onClick={addNewProject} disabled={isLoading}>
-              {isLoading && <Spinner />}
+            <Button size="sm" onClick={onAdd} disabled={isAdding || isPickingProject}>
+              {(isAdding || isPickingProject) && <Spinner data-icon="inline-start" />}
               新增
             </Button>
           </CardAction>
         </CardHeader>
         <CardContent>
-          {projects.map((project) => (
-            <ProjectItem
-              key={project.path}
-              project={project}
-              onDelete={() => deleteProject(project)}
-            />
-          ))}
+          {isProjectsLoading ? (
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-14 w-full" />
+              <Skeleton className="h-14 w-full" />
+            </div>
+          ) : (
+            projects.map((project) => <ProjectItem key={project.path} project={project} />)
+          )}
         </CardContent>
       </Card>
       <Card className="min-w-sm">
         <CardHeader>
           <CardTitle>Terminal</CardTitle>
           <CardDescription>終端機類型</CardDescription>
+          {isUpdatingTerminal && (
+            <CardAction>
+              <Spinner />
+            </CardAction>
+          )}
         </CardHeader>
         <CardContent>
-          <RadioGroup
-            value={terminalConfig?.selected || ''}
-            onValueChange={(v) => onTerminalChange(v)}
-            className="max-w-sm"
-          >
-            {terminalConfig?.options.map((opt) => (
-              <FieldLabel key={opt} htmlFor={`term=${opt}`}>
-                <Field orientation="horizontal">
-                  <FieldContent>
-                    <FieldTitle>{opt}</FieldTitle>
-                  </FieldContent>
-                  <RadioGroupItem value={opt} id={`term=${opt}`} />
-                </Field>
-              </FieldLabel>
-            ))}
-          </RadioGroup>
+          {isLoadingTerminalConfig ? (
+            <Skeleton className="h-16 w-full max-w-sm" />
+          ) : (
+            <RadioGroup
+              value={terminalConfig?.selected || ''}
+              onValueChange={(value) => onTerminalChange(value)}
+              disabled={isUpdatingTerminal}
+              className="max-w-sm"
+            >
+              {terminalConfig?.options.map((opt) => (
+                <FieldLabel key={opt} htmlFor={`term=${opt}`}>
+                  <Field orientation="horizontal">
+                    <FieldContent>
+                      <FieldTitle>{opt}</FieldTitle>
+                    </FieldContent>
+                    <RadioGroupItem value={opt} id={`term=${opt}`} disabled={isUpdatingTerminal} />
+                  </Field>
+                </FieldLabel>
+              ))}
+            </RadioGroup>
+          )}
         </CardContent>
       </Card>
+      <Dialog
+        open={draft !== null}
+        onOpenChange={(open) => {
+          if (!open && !isAdding) setDraft(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>命名專案</DialogTitle>
+            <DialogDescription>預設使用資料夾名稱，可以改成更好記的顯示名稱。</DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="project-name">顯示名稱</FieldLabel>
+              <Input
+                id="project-name"
+                value={name}
+                autoFocus
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void onConfirmName()
+                  }
+                }}
+              />
+            </Field>
+            <Field>
+              <FieldLabel>路徑</FieldLabel>
+              <PathExplorer path={draft?.path} />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDraft(null)} disabled={isAdding}>
+              取消
+            </Button>
+            <Button onClick={onConfirmName} disabled={isAdding}>
+              {isAdding && <Spinner data-icon="inline-start" />}
+              建立
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: () => void }) => {
-  const { setCompanyListPath, hasCompanyListPath, setConfigPath } = useProjects(project)
+const ProjectItem = ({ project }: { project: ProjectInfo }) => {
+  const { setCompanyListPath, hasCompanyListPath, setConfigPath, deleteProject, isDeleting } =
+    useProjects(project)
+  const [pendingPath, setPendingPath] = useState<'company' | 'config' | null>(null)
+
+  const onSetCompanyListPath = async () => {
+    setPendingPath('company')
+    try {
+      await setCompanyListPath()
+    } finally {
+      setPendingPath(null)
+    }
+  }
+
+  const onSetConfigPath = async () => {
+    setPendingPath('config')
+    try {
+      await setConfigPath()
+    } finally {
+      setPendingPath(null)
+    }
+  }
 
   return (
     <Collapsible className="data-open:bg-muted">
@@ -113,11 +221,13 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete()
+                disabled={isDeleting}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  void deleteProject(project)
                 }}
               >
+                {isDeleting && <Spinner data-icon="inline-start" />}
                 刪除
               </Button>
               <Button variant="ghost" size="xs">
@@ -134,8 +244,13 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
             <ItemDescription>{project.companyListPath || '未設定'}</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <Button variant="outline" size="sm" onClick={() => setCompanyListPath()}>
-              <IconFolderOpen />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pendingPath !== null}
+              onClick={onSetCompanyListPath}
+            >
+              {pendingPath === 'company' ? <Spinner /> : <IconFolderOpen />}
             </Button>
           </ItemActions>
         </Item>
@@ -145,8 +260,13 @@ const ProjectItem = ({ project, onDelete }: { project: ProjectInfo; onDelete: ()
             <ItemDescription>{project.configPath || '未設定'}</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <Button variant="outline" size="sm" onClick={() => setConfigPath()}>
-              <IconFolderOpen />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pendingPath !== null}
+              onClick={onSetConfigPath}
+            >
+              {pendingPath === 'config' ? <Spinner /> : <IconFolderOpen />}
             </Button>
           </ItemActions>
         </Item>

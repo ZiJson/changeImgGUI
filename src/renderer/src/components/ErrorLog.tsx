@@ -1,30 +1,28 @@
+import { useEffect, useState } from 'react'
+import { Bug, ChevronDown, Clock, Copy, Trash2 } from 'lucide-react'
+import { type ErrorLog as ErrorLogEntry } from 'src/shared/settings'
+import { Badge } from './ui/badge'
+import { Button } from './ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible'
 import {
   Drawer,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger
 } from './ui/drawer'
-import { Button } from './ui/button'
-import { useEffect, useState } from 'react'
-import { type ErrorLog as ErrorLogEntry } from 'src/shared/settings'
-import { AlertCircle, Bug, ChevronDown, ChevronUp, Clock, Copy, Trash2 } from 'lucide-react'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from './ui/empty'
+import { Separator } from './ui/separator'
 
 export function ErrorLog() {
   const [open, setOpen] = useState(false)
   const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([])
-  const [expandedIds, setExpandedIds] = useState<string[]>([])
 
   const onClear = () => {
     setErrorLogs([])
-    setExpandedIds([])
-  }
-
-  const toggleExpand = (id: string) => {
-    setExpandedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
   }
 
   const formatTime = (timestamp: number) =>
@@ -61,125 +59,98 @@ export function ErrorLog() {
           <Button
             variant={errorLogs.length > 0 ? 'destructive' : 'ghost'}
             title="Error Logs"
-            className="fixed right-0 bottom-0 z-50 gap-2 shadow-lg"
+            className="fixed right-0 bottom-0 z-50 shadow-lg"
           >
-            <Bug className="size-4" />
-            {errorLogs.length > 0 && (
-              <span className="flex size-4 items-center justify-center rounded-full bg-white/20 text-xs">
-                {errorLogs.length}
-              </span>
-            )}
+            <Bug data-icon="inline-start" />
+            Error Logs
+            {errorLogs.length > 0 && <Badge variant="secondary">{errorLogs.length}</Badge>}
           </Button>
         }
       />
 
       <DrawerContent className="flex flex-col">
-        {/* Header */}
-        <DrawerHeader className="border-b pb-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-destructive/10 rounded-lg p-2">
-                <AlertCircle className="text-destructive size-5" />
-              </div>
-
-              <div>
-                <DrawerTitle>Error Logs</DrawerTitle>
-                <DrawerDescription className="text-xs">主程序錯誤日誌與例外追蹤</DrawerDescription>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <p className="text-destructive text-lg font-bold tabular-nums">{errorLogs.length}</p>
-              <p className="text-muted-foreground text-xs">Total Errors</p>
-            </div>
-          </div>
+        <DrawerHeader>
+          <DrawerTitle>Error Logs</DrawerTitle>
+          <DrawerDescription>主程序錯誤日誌與例外追蹤</DrawerDescription>
+          <Badge variant={errorLogs.length > 0 ? 'destructive' : 'secondary'}>
+            {errorLogs.length} errors
+          </Badge>
         </DrawerHeader>
+        <Separator />
 
-        {/* Logs */}
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {errorLogs.length === 0 ? (
-            <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3">
-              <div className="bg-muted rounded-full p-4">
-                <Bug className="size-8" />
-              </div>
-              <p className="font-medium">No errors found</p>
-              <p className="text-sm">目前沒有任何錯誤紀錄</p>
-            </div>
+            <Empty className="h-full border-0">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Bug />
+                </EmptyMedia>
+                <EmptyTitle>沒有錯誤紀錄</EmptyTitle>
+                <EmptyDescription>目前沒有任何主程序錯誤。</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="flex flex-col gap-3">
-              {errorLogs.map((error) => {
-                const expanded = expandedIds.includes(error.id)
-
-                return (
-                  <div key={error.id} className="bg-card overflow-hidden rounded-xl border">
-                    {/* Error Info */}
-                    <div className="flex items-start gap-3 p-4">
-                      <AlertCircle className="text-destructive mt-0.5 size-5 shrink-0" />
-
-                      <div className="min-w-0 flex-1 space-y-2">
-                        <p className="text-sm font-semibold break-words">{error.message}</p>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="bg-muted rounded-md px-2 py-1 font-mono text-xs">
-                            {error.channel}
-                          </span>
-
-                          <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <Clock className="size-3" />
-                            {formatTime(error.timestamp)}
-                          </span>
-                        </div>
-                      </div>
-
+              {errorLogs.map((error) => (
+                <Card key={error.id} size="sm">
+                  <CardHeader>
+                    <CardTitle className="break-words">{error.message}</CardTitle>
+                    <CardDescription className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{error.channel}</Badge>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="size-3" />
+                        {formatTime(error.timestamp)}
+                      </span>
+                    </CardDescription>
+                    <CardAction>
                       <Button
                         variant="ghost"
-                        size="icon"
+                        size="icon-sm"
                         onClick={() => copyLog(error)}
                         title="Copy error log"
                       >
                         <Copy />
                       </Button>
-                    </div>
-
-                    {/* Stack Trace */}
-                    {error.stack && (
-                      <div className="bg-muted/30 border-t">
-                        <button
-                          onClick={() => toggleExpand(error.id)}
-                          className="text-muted-foreground hover:bg-muted/50 flex w-full items-center justify-between px-4 py-2 text-xs font-medium transition-colors"
+                    </CardAction>
+                  </CardHeader>
+                  {error.stack && (
+                    <CardContent>
+                      <Collapsible>
+                        <CollapsibleTrigger
+                          className="w-full"
+                          render={
+                            <Button variant="ghost" size="sm" className="w-full justify-between" />
+                          }
                         >
-                          <span>Stack Trace</span>
-                          {expanded ? (
-                            <ChevronUp className="size-4" />
-                          ) : (
-                            <ChevronDown className="size-4" />
-                          )}
-                        </button>
-
-                        {expanded && (
-                          <pre className="max-h-64 overflow-auto border-t bg-zinc-900 p-4 text-xs leading-relaxed text-zinc-300">
+                          Stack Trace
+                          <ChevronDown data-icon="inline-end" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <pre className="bg-muted text-muted-foreground mt-2 max-h-64 overflow-auto rounded-md p-4 font-mono text-xs">
                             <code>{error.stack}</code>
                           </pre>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  )}
+                </Card>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Footer */}
         {errorLogs.length > 0 && (
-          <div className="bg-background flex items-center justify-between border-t p-4">
-            <span className="text-muted-foreground text-xs">{errorLogs.length} error records</span>
-
-            <Button variant="destructive" size="sm" className="gap-2" onClick={onClear}>
-              <Trash2 className="size-4" />
-              Clear Logs
-            </Button>
-          </div>
+          <DrawerFooter>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground text-xs">
+                {errorLogs.length} error records
+              </span>
+              <Button variant="destructive" size="sm" onClick={onClear}>
+                <Trash2 data-icon="inline-start" />
+                Clear Logs
+              </Button>
+            </div>
+          </DrawerFooter>
         )}
       </DrawerContent>
     </Drawer>

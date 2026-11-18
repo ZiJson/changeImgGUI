@@ -7,12 +7,14 @@ import { useQuery } from '@tanstack/react-query'
 import type { ProjectInfo } from 'src/shared/settings'
 
 export const useGitDiff = (project: ProjectInfo | null) => {
-  const { data: gitStatus } = useQuery(gitInfoQueryOptions(project))
-  const { data: repoInfo } = useQuery(gitRepoQueryOptions(project))
+  const { data: gitStatus, isLoading: isLoadingGitStatus } = useQuery(gitInfoQueryOptions(project))
+  const { data: repoInfo, isLoading: isLoadingRepoInfo } = useQuery(gitRepoQueryOptions(project))
 
   return {
     gitStatus,
-    repoInfo
+    repoInfo,
+    isLoadingGitStatus,
+    isLoadingRepoInfo
   }
 }
 

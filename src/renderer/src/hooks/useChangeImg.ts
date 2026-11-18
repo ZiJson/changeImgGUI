@@ -33,23 +33,31 @@ export const useChangeImg = () => {
     companyFolderListQueryOptions(project)
   )
 
-  const { data: favIcon } = useQuery(favIconQueryOptions(project, selectedCompanyFolder))
-
-  const { data: imageFolder } = useQuery(imageFolderQueryOptions(project, selectedCompanyFolder))
-
-  const { data: companyConfig, refetch: refetchCompanyConfig } = useQuery(
-    companyConfigQueryOptions(project, selectedCompanyFolder)
+  const { data: favIcon, isLoading: isLoadingFavIcon } = useQuery(
+    favIconQueryOptions(project, selectedCompanyFolder)
   )
 
-  const { data: checkResult, refetch: checkImages } = useQuery(
-    checkImagesQueryOptions(project, selectedCompanyFolder, newImagePaths)
+  const { data: imageFolder, isLoading: isLoadingImageFolder } = useQuery(
+    imageFolderQueryOptions(project, selectedCompanyFolder)
   )
 
-  const { data: activeCompanyCode } = useQuery(
+  const {
+    data: companyConfig,
+    refetch: refetchCompanyConfig,
+    isLoading: isLoadingCompanyConfig
+  } = useQuery(companyConfigQueryOptions(project, selectedCompanyFolder))
+
+  const {
+    data: checkResult,
+    refetch: checkImages,
+    isFetching: isCheckingImages
+  } = useQuery(checkImagesQueryOptions(project, selectedCompanyFolder, newImagePaths))
+
+  const { data: activeCompanyCode, isLoading: isLoadingActiveCompanyCode } = useQuery(
     activeCompanyCodeQueryOptions(project, companyFolderList?.map((company) => company.name) ?? [])
   )
 
-  const { mutateAsync: switchCompanyConfig } = useMutation({
+  const { mutateAsync: switchCompanyConfig, isPending: isSwitchingCompany } = useMutation({
     mutationKey: ['switchConfig', project, selectedCompanyFolder],
     mutationFn: () =>
       window.api.project.switchCompanyConfig(project!.configPath!, selectedCompanyFolder!.name!),
@@ -137,19 +145,25 @@ export const useChangeImg = () => {
     companyFolderList,
     isLoadingCompanyFolderList,
     favIcon,
+    isLoadingFavIcon,
     imageFolder,
+    isLoadingImageFolder,
     selectImages,
     clearImages,
     newImagePaths,
     checkResult,
+    isCheckingImages,
     checkImages,
     fixImages,
     fixLoading,
     replaceImages,
     replaceImagesLoading,
     switchCompanyConfig,
+    isSwitchingCompany,
     activeCompanyCode,
+    isLoadingActiveCompanyCode,
     companyConfig,
+    isLoadingCompanyConfig,
     refetchCompanyConfig
   }
 }
