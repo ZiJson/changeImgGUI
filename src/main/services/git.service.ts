@@ -1,5 +1,5 @@
 import { simpleGit } from 'simple-git'
-import { GitImagePaths, GitRepoInfo, GitStatus } from '../type/git'
+import type { GitImagePaths, GitRepoInfo, GitStatus } from '../../shared/git'
 import path from 'path'
 import fs from 'fs/promises'
 import { app } from 'electron'
@@ -57,7 +57,7 @@ const runWslGit = (distro: string, projectPath: string, args: string[]): Promise
   })
 }
 
-export const getGitStatus = async (projectPath: string) => {
+export const getGitStatus = async (projectPath: string): Promise<GitStatus> => {
   if (!isWslPath(projectPath)) {
     const git = simpleGit(projectPath)
     const status = await git.status()
@@ -70,7 +70,7 @@ export const getGitStatus = async (projectPath: string) => {
       staged: status.staged,
       not_added: status.not_added,
       deleted: status.deleted,
-      renamed: status.renamed,
+      renamed: status.renamed.map((file) => file.to),
       conflicted: status.conflicted
     }
   }

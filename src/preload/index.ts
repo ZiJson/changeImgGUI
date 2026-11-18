@@ -1,130 +1,125 @@
-import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { electronAPI, type ElectronAPI } from '@electron-toolkit/preload'
+import type { GitImagePaths, GitRepoInfo, GitStatus } from '../shared/git'
+import type { ImageAlternativeResult, ImagePathPair } from '../shared/image'
 import {
+  AppChannel,
+  GitChannel,
+  ImageChannel,
+  IndexChannel,
+  ProjectChannel,
+  TerminalChannel,
+  type IpcInvokeMap,
+  type IpcMainEventMap
+} from '../shared/ipc'
+import type {
   CompanyConfig,
   CompanyFolder,
   ErrorLog,
   ProjectInfo,
   RevealMode,
   TerminalConfig
-} from 'src/main/type/settings'
-import { ImageAlternativeResult, ImagePathPair } from 'src/main/type/image'
-import { StatusResult } from 'simple-git'
-import { GitImagePaths, GitRepoInfo } from 'src/main/type/git'
+} from '../shared/settings'
 
-// Custom APIs for renderer
-enum IndexIPC {
-  SELECT_DIRECTORY = 'select-directory',
-  SELECT_IMAGES = 'select-images',
-  SELECT_FILE = 'select-file',
-  OPEN_EXTERNAL = 'open-external',
-  REVEAL_IN_FIE_EXPLORER = 'reveal-in-file-explorer'
-}
+const invoke = <C extends keyof IpcInvokeMap>(
+  channel: C,
+  ...args: IpcInvokeMap[C]['args']
+): Promise<IpcInvokeMap[C]['return']> => ipcRenderer.invoke(channel, ...args)
 
-enum ProjectIPC {
-  ADD_NEW_PROJECT = 'project:add-new-project',
-  UPDATE_PROJECT = 'project:update-project',
-  DELETE_PROJECT = 'project:delete-project',
-  GET_PROJECTS = 'project:get-projects',
-  GET_COMPANY_FOLDER_LIST = 'project:get-company-folder-list',
-  GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
-  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
-  SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
-  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code',
-  GET_COMPANY_CONFIG_BY_COMPANY_FOLDER = 'project:get-company-config-by-company-folder'
-}
-
-enum ImageIPC {
-  CHECK_IMAGES_MATCH = 'image:check-images-match',
-  FIX_IMAGE_FILE_NAMES = 'image:fix-image-file-names',
-  COMPRESS_IMAGES = 'image:compress-images',
-  CONVERT_IMAGES = 'image:convert-images',
-  REPLACE_IMAGES = 'image:replace-images'
-}
-
-enum GitIPC {
-  GET_GIT_STATUS = 'git:get-git-status',
-  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths',
-  GET_GIT_REPO_INFO = 'git:get-git-repo-info'
+const onMainEvent = <C extends keyof IpcMainEventMap>(
+  channel: C,
+  callback: (...args: IpcMainEventMap[C]['args']) => void
+): (() => void) => {
+  const listener = (_event: IpcRendererEvent, ...args: unknown[]): void => {
+    callback(...(args as IpcMainEventMap[C]['args']))
+  }
+  ipcRenderer.on(channel, listener)
+  return () => {
+    ipcRenderer.removeListener(channel, listener)
+  }
 }
 
 const api = {
   selectDirectory: (defaultPath?: string): Promise<string | null> =>
-    ipcRenderer.invoke(IndexIPC.SELECT_DIRECTORY, defaultPath),
+    invoke(IndexChannel.selectDirectory, defaultPath),
   selectImages: (defaultPath?: string): Promise<string[] | null> =>
-    ipcRenderer.invoke(IndexIPC.SELECT_IMAGES, defaultPath),
+    invoke(IndexChannel.selectImages, defaultPath),
   selectFile: (defaultPath?: string): Promise<string | null> =>
-    ipcRenderer.invoke(IndexIPC.SELECT_FILE, defaultPath),
-  openExternal: (url: string) => ipcRenderer.invoke(IndexIPC.OPEN_EXTERNAL, url),
+    invoke(IndexChannel.selectFile, defaultPath),
+  openExternal: (url: string): Promise<void> => invoke(IndexChannel.openExternal, url),
   revealInFileExplorer: (path: string, mode: RevealMode): Promise<boolean> =>
-    ipcRenderer.invoke(IndexIPC.REVEAL_IN_FIE_EXPLORER, path, mode),
-  onErrorLog: (callback: (error: ErrorLog) => void) => {
-    const listener = (_, error: ErrorLog) => {
-      callback(error)
-    }
-    ipcRenderer.on('error-log', listener)
-    return () => {
-      ipcRenderer.removeListener('error-log', listener)
-    }
-  },
+    invoke(IndexChannel.revealInFileExplorer, path, mode),
+  onErrorLog: (callback: (error: ErrorLog) => void): (() => void) =>
+    onMainEvent(AppChannel.errorLog, callback),
   project: {
-    addNewProject: (project: ProjectInfo) =>
-      ipcRenderer.invoke(ProjectIPC.ADD_NEW_PROJECT, project),
-    updateProject: (project: ProjectInfo) => ipcRenderer.invoke(ProjectIPC.UPDATE_PROJECT, project),
-    deleteProject: (project: ProjectInfo) => ipcRenderer.invoke(ProjectIPC.DELETE_PROJECT, project),
-    getProjects: (): Promise<ProjectInfo[]> => ipcRenderer.invoke(ProjectIPC.GET_PROJECTS),
+    addNewProject: (project: ProjectInfo): Promise<void> =>
+      invoke(ProjectChannel.addNewProject, project),
+    updateProject: (project: ProjectInfo): Promise<void> =>
+      invoke(ProjectChannel.updateProject, project),
+    deleteProject: (project: ProjectInfo): Promise<void> =>
+      invoke(ProjectChannel.deleteProject, project),
+    getProjects: (): Promise<ProjectInfo[]> => invoke(ProjectChannel.getProjects),
     getCompanyFolderList: (project: ProjectInfo): Promise<CompanyFolder[]> =>
-      ipcRenderer.invoke(ProjectIPC.GET_COMPANY_FOLDER_LIST, project),
+      invoke(ProjectChannel.getCompanyFolderList, project),
     getFavIconByCompanyFolder: (companyFolder: CompanyFolder): Promise<string> =>
-      ipcRenderer.invoke(ProjectIPC.GET_FAV_ICON_BY_COMPANY_FOLDER, companyFolder),
+      invoke(ProjectChannel.getFavIconByCompanyFolder, companyFolder),
     getImageFolderByCompanyFolder: (companyFolder: CompanyFolder): Promise<string> =>
-      ipcRenderer.invoke(ProjectIPC.GET_IMAGE_FOLDER_BY_COMPANY_FOLDER, companyFolder),
-    switchCompanyConfig: (configFilePath: string, companyCode: string) =>
-      ipcRenderer.invoke(ProjectIPC.SWITCH_COMPANY_CONFIG, configFilePath, companyCode),
-    getActiveCompanyCode: (configFilePath: string, companyCodes: string[]) =>
-      ipcRenderer.invoke(ProjectIPC.GET_ACTIVE_COMPANY_CODE, configFilePath, companyCodes),
+      invoke(ProjectChannel.getImageFolderByCompanyFolder, companyFolder),
+    switchCompanyConfig: (configFilePath: string, companyCode: string): Promise<void> =>
+      invoke(ProjectChannel.switchCompanyConfig, configFilePath, companyCode),
+    getActiveCompanyCode: (
+      configFilePath: string,
+      companyCodes: string[]
+    ): Promise<string | null> =>
+      invoke(ProjectChannel.getActiveCompanyCode, configFilePath, companyCodes),
     getCompanyConfigByCompanyFolder: (companyFolder: CompanyFolder): Promise<CompanyConfig> =>
-      ipcRenderer.invoke(ProjectIPC.GET_COMPANY_CONFIG_BY_COMPANY_FOLDER, companyFolder)
+      invoke(ProjectChannel.getCompanyConfigByCompanyFolder, companyFolder)
   },
   image: {
     checkImagesMatch: (props: {
       companyFolder: CompanyFolder
       newImagePaths: string[]
-    }): Promise<ImageAlternativeResult> => ipcRenderer.invoke(ImageIPC.CHECK_IMAGES_MATCH, props),
+    }): Promise<ImageAlternativeResult> => invoke(ImageChannel.checkImagesMatch, props),
     fixImageFileNames: (imagePairs: ImagePathPair[]): Promise<ImagePathPair[]> =>
-      ipcRenderer.invoke(ImageIPC.FIX_IMAGE_FILE_NAMES, imagePairs),
+      invoke(ImageChannel.fixImageFileNames, imagePairs),
     compressImages: (imagePairs: ImagePathPair[]): Promise<ImagePathPair[]> =>
-      ipcRenderer.invoke(ImageIPC.COMPRESS_IMAGES, imagePairs),
+      invoke(ImageChannel.compressImages, imagePairs),
     convertImages: (imagePairs: ImagePathPair[]): Promise<ImagePathPair[]> =>
-      ipcRenderer.invoke(ImageIPC.CONVERT_IMAGES, imagePairs),
+      invoke(ImageChannel.convertImages, imagePairs),
     replaceImages: (imagePairs: ImagePathPair[]): Promise<ImagePathPair[]> =>
-      ipcRenderer.invoke(ImageIPC.REPLACE_IMAGES, imagePairs)
+      invoke(ImageChannel.replaceImages, imagePairs)
   },
   git: {
-    getGitStatus: (projectPath: string): Promise<StatusResult> =>
-      ipcRenderer.invoke(GitIPC.GET_GIT_STATUS, projectPath),
+    getGitStatus: (projectPath: string): Promise<GitStatus> =>
+      invoke(GitChannel.getGitStatus, projectPath),
     getGitImagePaths: (projectPath: string, relativePath: string): Promise<GitImagePaths> =>
-      ipcRenderer.invoke(GitIPC.GET_GIT_IMAGE_PATHS, projectPath, relativePath),
+      invoke(GitChannel.getGitImagePaths, projectPath, relativePath),
     getGitRepoInfo: (projectPath: string): Promise<GitRepoInfo> =>
-      ipcRenderer.invoke(GitIPC.GET_GIT_REPO_INFO, projectPath)
+      invoke(GitChannel.getGitRepoInfo, projectPath)
   },
   terminal: {
-    createTerminal: () => ipcRenderer.invoke('create-terminal'),
-    onOutput: (callback: (data: string) => void) =>
-      ipcRenderer.on('terminal-output', (_, data: string) => callback(data)),
-    sendInput: (input: string) => ipcRenderer.send('terminal-input', input),
-    disposeTerminal: () => ipcRenderer.invoke('dispose-terminal'),
-    getTerminalConfig: (): Promise<TerminalConfig> => ipcRenderer.invoke('terminal-settings'),
-    updateTerminalConfig: (config: TerminalConfig) =>
-      ipcRenderer.invoke('terminal-settings-update', config)
+    createTerminal: (): Promise<boolean> => invoke(TerminalChannel.create),
+    onOutput: (callback: (data: string) => void): (() => void) =>
+      onMainEvent(TerminalChannel.output, callback),
+    sendInput: (input: string): void => {
+      ipcRenderer.send(TerminalChannel.input, input)
+    },
+    disposeTerminal: (): Promise<void> => invoke(TerminalChannel.dispose),
+    getTerminalConfig: (): Promise<TerminalConfig> => invoke(TerminalChannel.settings),
+    updateTerminalConfig: (config: TerminalConfig): Promise<void> =>
+      invoke(TerminalChannel.settingsUpdate, config)
   }
 }
 
 export type RenderAPI = typeof api
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+declare global {
+  interface Window {
+    electron: ElectronAPI
+    api: RenderAPI
+  }
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
@@ -133,8 +128,6 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore (define in dts)
   window.electron = electronAPI
-  // @ts-ignore (define in dts)
   window.api = api
 }

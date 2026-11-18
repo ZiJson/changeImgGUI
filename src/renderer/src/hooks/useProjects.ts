@@ -1,33 +1,31 @@
 import { getNameFromPath } from '@renderer/lib/tool'
+import { projectsQueryOptions, queryKeys } from '@renderer/lib/queries'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
-import { ProjectInfo } from 'src/main/type/settings'
+import type { ProjectInfo } from 'src/shared/settings'
 
 export const useProjects = (curProjects?: ProjectInfo) => {
   const queryClient = useQueryClient()
-  const { data, isFetching: loading_1 } = useQuery({
-    queryKey: ['projects'],
-    queryFn: window.api.project.getProjects
-  })
+  const { data, isFetching: loading_1 } = useQuery(projectsQueryOptions)
 
   const { mutateAsync: add, isPending: loading_2 } = useMutation({
     mutationFn: window.api.project.addNewProject,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 
   const { mutateAsync: update, isPending: loading_3 } = useMutation({
     mutationFn: window.api.project.updateProject,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 
   const { mutateAsync: del, isPending: loading_4 } = useMutation({
     mutationFn: window.api.project.deleteProject,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 

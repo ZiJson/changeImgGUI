@@ -2,7 +2,7 @@ export interface GitImageInfo {
   path: string
   width: number | null
   height: number | null
-  size: number | null // bytes
+  size: number | null
 }
 
 export interface GitImagePaths {
@@ -10,7 +10,7 @@ export interface GitImagePaths {
   old: GitImageInfo
 }
 
-type GitStatus = {
+export type GitStatus = {
   current: string | null
   tracking: string | null
   isClean: boolean
@@ -22,6 +22,6 @@ type GitStatus = {
   conflicted: string[]
 }
 
-type GitRepoInfo = {
+export type GitRepoInfo = {
   root: string
 }

@@ -14,14 +14,14 @@ import { IconTerminal2, type Icon } from '@tabler/icons-react'
 import { Link, useLocation } from 'react-router'
 import packageJson from '../../../../package.json'
 
-import { useTerminalStore } from '@renderer/stores/useTerminalStore'
+import { useTerminalActions } from '@renderer/components/terminal-store'
 
 export const data = {
   navMain: route
 }
 
 export function AppSidebar() {
-  const toggleOpen = useTerminalStore((s) => s.toggleOpen)
+  const { toggleOpen } = useTerminalActions()
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader />

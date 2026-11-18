@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { AppSettings, RevealMode } from '../type/settings'
+import type { AppSettings, RevealMode } from '../../shared/settings'
 import { app, dialog, shell } from 'electron'
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json')

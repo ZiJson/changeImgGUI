@@ -3,7 +3,7 @@ export interface AppSettings {
   terminal: TerminalConfig
 }
 
-type ProjectInfo = {
+export type ProjectInfo = {
   name: string
   path: string
   description: string
@@ -11,26 +11,26 @@ type ProjectInfo = {
   configPath?: string
 }
 
-type CompanyFolder = {
+export type CompanyFolder = {
   name: string
   path: string
 }
 
-type CompanyConfig = {
+export type CompanyConfig = {
   path: string
   content: string
 }
 
-type TerminalType = 'bash' | 'wsl'
+export type TerminalType = 'bash' | 'wsl'
 
-interface TerminalConfig {
+export interface TerminalConfig {
   options: TerminalType[]
   selected: TerminalType
 }
 
-type RevealMode = 'select' | 'open'
+export type RevealMode = 'select' | 'open'
 
-interface RevealOptions {
+export interface RevealOptions {
   path: string
   mode?: RevealMode
 }

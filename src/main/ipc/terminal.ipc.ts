@@ -2,13 +2,14 @@ import { BrowserWindow, ipcMain } from 'electron'
 import * as settingService from '../services/setting.service'
 import pty from 'node-pty'
 import os from 'node:os'
-import { TerminalConfig } from '../type/settings'
+import type { TerminalConfig } from '../../shared/settings'
+import { TerminalChannel } from '../../shared/ipc'
 import { handle } from '../ipc-handler'
 
 let terminalProcess: pty.IPty | null = null
 
 export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
-  handle('create-terminal', async () => {
+  handle(TerminalChannel.create, async () => {
     // 已經有 Terminal 就不重複建立
     if (terminalProcess) {
       terminalProcess.kill()
@@ -32,7 +33,7 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
 
     ptyProcess.onData((data) => {
       if (!mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-output', data)
+        mainWindow.webContents.send(TerminalChannel.output, data)
       }
     })
 
@@ -45,11 +46,11 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
     return true
   })
 
-  ipcMain.on('terminal-input', (_, input: string) => {
+  ipcMain.on(TerminalChannel.input, (_, input: string) => {
     terminalProcess?.write(input)
   })
 
-  handle('dispose-terminal', () => {
+  handle(TerminalChannel.dispose, () => {
     const terminal = terminalProcess
     if (!terminal) return
 
@@ -57,13 +58,13 @@ export const registerTerminalIPC = (mainWindow: BrowserWindow) => {
     terminal.kill()
   })
 
-  handle('terminal-settings', async (): Promise<TerminalConfig> => {
+  handle(TerminalChannel.settings, async (): Promise<TerminalConfig> => {
     const settings = await settingService.getSettings()
 
     return { ...settings.terminal, options: ['bash', 'wsl'] }
   })
 
-  handle('terminal-settings-update', async (_, config: TerminalConfig) => {
+  handle(TerminalChannel.settingsUpdate, async (_, config: TerminalConfig) => {
     const settings = await settingService.getSettings()
     settings.terminal = config
     await settingService.saveSettings(settings)

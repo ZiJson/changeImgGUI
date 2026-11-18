@@ -1,28 +1,28 @@
-type ImageChecks = {
+export type ImageChecks = {
   filenameMatches: boolean | null
   extensionMatches: boolean | null
   aspectRatioMatches: boolean | null
   sizeDifferenceAcceptable: boolean | null
 }
 
-type ImageAlternative = {
+export type ImageAlternative = {
   newPath: string
   oldPath: string | null
   checks: ImageChecks
 }
 
-type ImagePathPair = {
+export type ImagePathPair = {
   newPath: string
   oldPath: string | null
 }
 
-type CheckSummary = {
+export type CheckSummary = {
   passed: number
   failed: number
   skipped: number
 }
 
-type ImageAlternativeSummary = {
+export type ImageAlternativeSummary = {
   total: number
   matched: number
   unmatched: number
@@ -39,7 +39,7 @@ export type ImageAlternativeResult = {
   summary: ImageAlternativeSummary
 }
 
-type ImageMetadata = {
+export type ImageMetadata = {
   width: number
   height: number
   size: number

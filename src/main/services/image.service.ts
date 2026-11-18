@@ -2,16 +2,16 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
 
-import type { CompanyFolder } from '../type/settings'
+import type { CompanyFolder } from '../../shared/settings'
 import { getFavIconByCompanyFolder, getImageFolderByCompanyFolder } from './project.service'
-import {
+import type {
   ImageAlternative,
   ImageAlternativeResult,
   ImageAlternativeSummary,
   ImageChecks,
   ImageMetadata,
   ImagePathPair
-} from '../type/image'
+} from '../../shared/image'
 
 const IMAGE_EXTENSIONS = new Set(['.webp', '.png', '.jpg', '.jpeg'])
 
