@@ -55,28 +55,10 @@ export function chooseKeeper(releases) {
   return pool.reduce((newest, release) => (release.id > newest.id ? release : newest))
 }
 
-export function parseCommitLog(log) {
-  return log
-    .split('\n')
-    .filter((line) => line.trim())
-    .map((line) => {
-      const tab = line.indexOf('\t')
-      if (tab === -1) return { hash: '', subject: line }
-      return { hash: line.slice(0, tab), subject: line.slice(tab + 1) }
-    })
-}
-
-export function buildReleaseNotes({ previousTag, tag, commits, compareUrl }) {
-  const heading = previousTag ? `自 ${previousTag} 以來的改動` : `${tag} 的改動`
-  const items =
-    commits.length > 0
-      ? commits.map((commit) =>
-          commit.hash ? `- ${commit.hash} ${commit.subject}` : `- ${commit.subject}`
-        )
-      : ['沒有新的 commit。']
-  const lines = [`## ${heading}`, '', ...items]
-  if (compareUrl) lines.push('', `完整比較：${compareUrl}`)
-  return `${lines.join('\n')}\n`
+export function releaseBodyFromGeneratedNotes(payload) {
+  const body = payload && typeof payload.body === 'string' ? payload.body.trim() : ''
+  if (!body) fail('GitHub 沒有產生 release notes')
+  return `${body}\n`
 }
 
 export function isTagFullyPublished(releases, assetNames) {
@@ -401,23 +383,16 @@ async function writeLatestYml(version, exeName, exePath) {
   return filePath
 }
 
-function commitsSincePreviousTag() {
-  const describe = spawnSync('git', ['describe', '--tags', '--abbrev=0', 'HEAD^'], {
-    cwd: root,
-    encoding: 'utf8'
+async function generateReleaseNotes(token, owner, repo, tag) {
+  const target = gitOutput(['rev-parse', 'HEAD'])
+  const payload = await githubJson({
+    method: 'POST',
+    url: `https://api.github.com/repos/${owner}/${repo}/releases/generate-notes`,
+    token,
+    body: { tag_name: tag, target_commitish: target },
+    ok: [200]
   })
-  const previousTag = describe.status === 0 ? describe.stdout.trim() : ''
-  const range = previousTag ? `${previousTag}..HEAD` : 'HEAD'
-  const log = gitOutput(['log', range, '--reverse', '--pretty=format:%h%x09%s'])
-  return { previousTag, commits: parseCommitLog(log) }
-}
-
-function releaseNotes(owner, repo, tag) {
-  const { previousTag, commits } = commitsSincePreviousTag()
-  const compareUrl = previousTag
-    ? `https://github.com/${owner}/${repo}/compare/${previousTag}...${tag}`
-    : ''
-  return buildReleaseNotes({ previousTag, tag, commits, compareUrl })
+  return releaseBodyFromGeneratedNotes(payload)
 }
 
 async function createDraftRelease(token, owner, repo, tag, version, notes) {
@@ -550,7 +525,9 @@ async function publishRelease(token, owner, repo, pkg) {
   run('git', ['push', 'origin', 'HEAD'])
   run('git', ['push', 'origin', `refs/tags/${tag}`])
 
-  const notes = releaseNotes(owner, repo, tag)
+  const notes = await withRetry('產生 release notes', () =>
+    generateReleaseNotes(token, owner, repo, tag)
+  )
   console.log(notes)
 
   const matches = (await listReleases(token, owner, repo)).filter(

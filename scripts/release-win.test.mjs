@@ -3,12 +3,11 @@ import test from 'node:test'
 import {
   artifactNames,
   buildLatestYml,
-  buildReleaseNotes,
   bumpVersion,
   chooseKeeper,
   isTagFullyPublished,
-  parseCommitLog,
   parseReleaseLevel,
+  releaseBodyFromGeneratedNotes,
   requiredAssetNames
 } from './release-win.mjs'
 
@@ -84,34 +83,14 @@ test('bump keeps the chosen component and resets the smaller ones', () => {
   assert.equal(bumpVersion('1.4.2', 'major'), '2.0.0')
 })
 
-test('release notes list commits since the previous tag', () => {
-  const commits = parseCommitLog('aaa1111\tfeat: name projects\nbbb2222\tfix: loading\n')
-  assert.deepEqual(commits, [
-    { hash: 'aaa1111', subject: 'feat: name projects' },
-    { hash: 'bbb2222', subject: 'fix: loading' }
-  ])
-  const notes = buildReleaseNotes({
-    previousTag: 'v1.1.0',
-    tag: 'v1.2.0',
-    commits,
-    compareUrl: 'https://github.com/ZiJson/changeImgGUI/compare/v1.1.0...v1.2.0'
+test('official release notes are stored as the release body', () => {
+  const notes = releaseBodyFromGeneratedNotes({
+    name: 'v1.2.0',
+    body: "## What's Changed\n* feat: name projects by @ZiJson in https://github.com/ZiJson/changeImgGUI/pull/2\n"
   })
-  assert.match(notes, /## 自 v1\.1\.0 以來的改動/)
-  assert.match(notes, /- aaa1111 feat: name projects/)
-  assert.match(notes, /- bbb2222 fix: loading/)
-  assert.match(notes, /compare\/v1\.1\.0\.\.\.v1\.2\.0/)
-})
-
-test('the first release still lists its commits', () => {
-  const notes = buildReleaseNotes({
-    previousTag: '',
-    tag: 'v1.0.0',
-    commits: [{ hash: 'abc', subject: 'init' }],
-    compareUrl: ''
-  })
-  assert.match(notes, /## v1\.0\.0 的改動/)
-  assert.match(notes, /- abc init/)
-  assert.doesNotMatch(notes, /完整比較/)
+  assert.match(notes, /What's Changed/)
+  assert.match(notes, /pull\/2/)
+  assert.throws(() => releaseBodyFromGeneratedNotes({ body: '  ' }), /沒有產生 release notes/)
 })
 
 test('one complete published release can be followed by the next version', () => {
