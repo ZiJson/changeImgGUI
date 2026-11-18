@@ -1,4 +1,3 @@
-'use client'
 import {
   Drawer,
   DrawerContent,
@@ -9,12 +8,12 @@ import {
 } from './ui/drawer'
 import { Button } from './ui/button'
 import { useEffect, useState } from 'react'
-import { type ErrorLog } from 'src/main/type/settings'
+import { type ErrorLog as ErrorLogEntry } from 'src/shared/settings'
 import { AlertCircle, Bug, ChevronDown, ChevronUp, Clock, Copy, Trash2 } from 'lucide-react'
 
 export function ErrorLog() {
   const [open, setOpen] = useState(false)
-  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([])
+  const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([])
   const [expandedIds, setExpandedIds] = useState<string[]>([])
 
   const onClear = () => {
@@ -38,7 +37,7 @@ export function ErrorLog() {
       hour12: false
     })
 
-  const copyLog = async (error: ErrorLog) => {
+  const copyLog = async (error: ErrorLogEntry) => {
     await navigator.clipboard.writeText(
       [
         `Message: ${error.message}`,

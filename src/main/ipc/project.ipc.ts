@@ -1,44 +1,44 @@
-import { CompanyFolder, ProjectInfo } from '../type/settings'
+import type { CompanyFolder, ProjectInfo } from '../../shared/settings'
 import * as projectService from '../services/project.service'
-import { ProjectIPC } from './index.ipc'
+import { ProjectChannel } from '../../shared/ipc'
 import { handle } from '../ipc-handler'
 
 export const registerProjectIpc = (): void => {
-  handle(ProjectIPC.ADD_NEW_PROJECT, async (_, project: ProjectInfo) => {
+  handle(ProjectChannel.addNewProject, async (_, project: ProjectInfo) => {
     return await projectService.addNewProject(project)
   })
-  handle(ProjectIPC.UPDATE_PROJECT, async (_, project: ProjectInfo) => {
+  handle(ProjectChannel.updateProject, async (_, project: ProjectInfo) => {
     return await projectService.updateProject(project)
   })
-  handle(ProjectIPC.DELETE_PROJECT, async (_, project: ProjectInfo) => {
+  handle(ProjectChannel.deleteProject, async (_, project: ProjectInfo) => {
     return await projectService.deleteProject(project)
   })
-  handle(ProjectIPC.GET_PROJECTS, async () => {
+  handle(ProjectChannel.getProjects, async () => {
     return await projectService.getProjects()
   })
-  handle(ProjectIPC.GET_COMPANY_FOLDER_LIST, async (_, project: ProjectInfo) => {
+  handle(ProjectChannel.getCompanyFolderList, async (_, project: ProjectInfo) => {
     return await projectService.getCompanyFolderList(project)
   })
-  handle(ProjectIPC.GET_FAV_ICON_BY_COMPANY_FOLDER, async (_, companyFolder: CompanyFolder) => {
+  handle(ProjectChannel.getFavIconByCompanyFolder, async (_, companyFolder: CompanyFolder) => {
     return await projectService.getFavIconByCompanyFolder(companyFolder)
   })
-  handle(ProjectIPC.GET_IMAGE_FOLDER_BY_COMPANY_FOLDER, async (_, companyFolder: CompanyFolder) => {
+  handle(ProjectChannel.getImageFolderByCompanyFolder, async (_, companyFolder: CompanyFolder) => {
     return await projectService.getImageFolderByCompanyFolder(companyFolder)
   })
   handle(
-    ProjectIPC.SWITCH_COMPANY_CONFIG,
+    ProjectChannel.switchCompanyConfig,
     async (_, configFilePath: string, companyCode: string) => {
       return await projectService.switchCompanyConfig(configFilePath, companyCode)
     }
   )
   handle(
-    ProjectIPC.GET_ACTIVE_COMPANY_CODE,
+    ProjectChannel.getActiveCompanyCode,
     async (_, configFilePath: string, companyCodes: string[]) => {
       return await projectService.getActiveCompanyCode(configFilePath, companyCodes)
     }
   )
   handle(
-    ProjectIPC.GET_COMPANY_CONFIG_BY_COMPANY_FOLDER,
+    ProjectChannel.getCompanyConfigByCompanyFolder,
     async (_, companyFolder: CompanyFolder) => {
       return await projectService.getCompanyConfigByCompanyFolder(companyFolder)
     }

@@ -16,7 +16,7 @@ import {
 } from '@renderer/components/ui/collapsible'
 import { useGitDiff, useGitImagePaths } from '@renderer/hooks/useGitDiff'
 import { ChevronDownIcon } from 'lucide-react'
-import { ProjectInfo } from 'src/main/type/settings'
+import type { ProjectInfo } from 'src/shared/settings'
 import { useInView } from 'react-intersection-observer'
 import {
   Attachment,
@@ -28,7 +28,7 @@ import {
 import { getNameFromPath } from '@renderer/lib/tool'
 import { Separator } from '@renderer/components/ui/separator'
 import { IconArrowLeftBar } from '@tabler/icons-react'
-import { GitImageInfo } from 'src/main/type/git'
+import type { GitImageInfo } from 'src/shared/git'
 
 export const GitDiffCard = ({ project }: { project: ProjectInfo | null }) => {
   const { gitStatus, repoInfo } = useGitDiff(project)
@@ -41,7 +41,7 @@ export const GitDiffCard = ({ project }: { project: ProjectInfo | null }) => {
       </CardHeader>
       <CardContent>
         {Object.entries(gitStatus || {}).map(([key, value]) => {
-          if (key === 'current' || key === 'tracking' || key === 'isClean') {
+          if (!Array.isArray(value)) {
             return null
           }
           return <DiffList key={key} diffs={value} keyName={key} project={project} />

@@ -1,16 +1,14 @@
+import { queryKeys, terminalConfigQueryOptions } from '@renderer/lib/queries'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { TerminalConfig, TerminalType } from 'src/main/type/settings'
+import type { TerminalConfig, TerminalType } from 'src/shared/settings'
 
 export const useSetting = () => {
   const queryClient = useQueryClient()
-  const { data: terminalConfig } = useQuery({
-    queryKey: ['terminal', 'config'],
-    queryFn: window.api.terminal.getTerminalConfig
-  })
+  const { data: terminalConfig } = useQuery(terminalConfigQueryOptions)
   const { mutateAsync: updateTerminalConfig } = useMutation({
     mutationFn: window.api.terminal.updateTerminalConfig,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['terminal'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.terminal })
     }
   })
 

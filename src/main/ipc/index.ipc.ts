@@ -9,57 +9,23 @@ import {
 import { registerProjectIpc } from './project.ipc'
 import { registerImageIpc } from './image.ipc'
 import { registerGitIpc } from './git.ipc'
-import { RevealMode } from '../type/settings'
-
-export enum IndexIPC {
-  SELECT_DIRECTORY = 'select-directory',
-  SELECT_IMAGES = 'select-images',
-  SELECT_FILE = 'select-file',
-  OPEN_EXTERNAL = 'open-external',
-  REVEAL_IN_FIE_EXPLORER = 'reveal-in-file-explorer'
-}
-
-export enum ProjectIPC {
-  ADD_NEW_PROJECT = 'project:add-new-project',
-  UPDATE_PROJECT = 'project:update-project',
-  DELETE_PROJECT = 'project:delete-project',
-  GET_PROJECTS = 'project:get-projects',
-  GET_COMPANY_FOLDER_LIST = 'project:get-company-folder-list',
-  GET_FAV_ICON_BY_COMPANY_FOLDER = 'project:get-fav-icon-by-company-folder',
-  GET_IMAGE_FOLDER_BY_COMPANY_FOLDER = 'project:get-image-folder-by-company-folder',
-  SWITCH_COMPANY_CONFIG = 'project:switch-company-config',
-  GET_ACTIVE_COMPANY_CODE = 'project:get-active-company-code',
-  GET_COMPANY_CONFIG_BY_COMPANY_FOLDER = 'project:get-company-config-by-company-folder'
-}
-
-export enum ImageIPC {
-  CHECK_IMAGES_MATCH = 'image:check-images-match',
-  FIX_IMAGE_FILE_NAMES = 'image:fix-image-file-names',
-  COMPRESS_IMAGES = 'image:compress-images',
-  CONVERT_IMAGES = 'image:convert-images',
-  REPLACE_IMAGES = 'image:replace-images'
-}
-
-export enum GitIPC {
-  GET_GIT_STATUS = 'git:get-git-status',
-  GET_GIT_IMAGE_PATHS = 'git:get-git-image-paths',
-  GET_GIT_REPO_INFO = 'git:get-git-repo-info'
-}
+import { IndexChannel } from '../../shared/ipc'
+import type { RevealMode } from '../../shared/settings'
 
 const registerIndexIpc = (): void => {
-  handle(IndexIPC.SELECT_DIRECTORY, async (_, defaultPath) => {
+  handle(IndexChannel.selectDirectory, async (_, defaultPath) => {
     return await selectDirectory(defaultPath)
   })
-  handle(IndexIPC.SELECT_IMAGES, async (_, defaultPath) => {
+  handle(IndexChannel.selectImages, async (_, defaultPath) => {
     return await selectImages(defaultPath)
   })
-  handle(IndexIPC.SELECT_FILE, async (_, defaultPath) => {
+  handle(IndexChannel.selectFile, async (_, defaultPath) => {
     return await selectFile(defaultPath)
   })
-  handle(IndexIPC.OPEN_EXTERNAL, async (_, url: string) => {
+  handle(IndexChannel.openExternal, async (_, url) => {
     await shell.openExternal(url)
   })
-  handle(IndexIPC.REVEAL_IN_FIE_EXPLORER, async (_, path: string, mode: RevealMode = 'select') => {
+  handle(IndexChannel.revealInFileExplorer, async (_, path, mode: RevealMode = 'select') => {
     return await revealInFileExplorer(path, mode)
   })
 }

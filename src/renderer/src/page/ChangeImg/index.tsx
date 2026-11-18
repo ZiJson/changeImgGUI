@@ -39,7 +39,8 @@ import {
   IconTrash,
   IconX
 } from '@tabler/icons-react'
-import { ImageChecks } from 'src/main/type/image'
+import type { ImageChecks } from 'src/shared/image'
+import type { CompanyFolder } from 'src/shared/settings'
 import { GitDiffCard } from './GitDiffCard'
 import { getNameFromPath } from '@renderer/lib/tool'
 import {
@@ -50,7 +51,6 @@ import {
   ComboboxItem,
   ComboboxList
 } from '@renderer/components/ui/combobox'
-import { CompanyFolder } from 'src/main/type/settings'
 import { PathExplorer } from '@renderer/components/ui/pathExplorer'
 import {
   CodeBlock,

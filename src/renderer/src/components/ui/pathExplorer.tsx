@@ -1,6 +1,6 @@
 import { getNameFromPath } from '@renderer/lib/tool'
 import { MouseEventHandler } from 'react'
-import { RevealMode } from 'src/main/type/settings'
+import type { RevealMode } from 'src/shared/settings'
 
 interface PathExplorerProps {
   path?: string

@@ -1,76 +1,60 @@
-import { useChangeImgStore } from '@renderer/stores/useChangeImgStore'
+import {
+  useChangeImgActions,
+  useNewImagePaths,
+  useSelectedCompanyFolder,
+  useSelectedProject
+} from '@renderer/page/ChangeImg/change-img-store'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ImageChecks, ImagePathPair } from 'src/main/type/image'
-import { ProjectInfo } from 'src/main/type/settings'
+import type { ImageChecks, ImagePathPair } from 'src/shared/image'
+import {
+  activeCompanyCodeQueryOptions,
+  checkImagesQueryOptions,
+  companyConfigQueryOptions,
+  companyFolderListQueryOptions,
+  favIconQueryOptions,
+  imageFolderQueryOptions,
+  queryKeys
+} from '@renderer/lib/queries'
+
+const toImagePairs = (
+  results: { newPath: string; oldPath: string | null }[] | undefined
+): ImagePathPair[] =>
+  results?.map((pair) => ({ newPath: pair.newPath, oldPath: pair.oldPath })) ?? []
 
 export const useChangeImg = () => {
   const queryClient = useQueryClient()
-  const project = useChangeImgStore((state) => state.project)
-  const setProject = useChangeImgStore((state) => state.setProject)
+  const project = useSelectedProject()
+  const selectedCompanyFolder = useSelectedCompanyFolder()
+  const newImagePaths = useNewImagePaths()
+  const { selectProject, selectCompanyFolder, setNewImagePaths } = useChangeImgActions()
 
-  const selectedCompanyFolder = useChangeImgStore((state) => state.selectedCompanyFolder)
-  const setSelectedCompanyFolder = useChangeImgStore((state) => state.setSelectedCompanyFolder)
+  const { data: companyFolderList, isLoading: isLoadingCompanyFolderList } = useQuery(
+    companyFolderListQueryOptions(project)
+  )
 
-  const newImagePaths = useChangeImgStore((state) => state.newImagePaths)
-  const setNewImagePaths = useChangeImgStore((state) => state.setNewImagePaths)
+  const { data: favIcon } = useQuery(favIconQueryOptions(project, selectedCompanyFolder))
 
-  const selectProject = (project: ProjectInfo | null) => {
-    setProject(project)
-    setSelectedCompanyFolder(null)
-  }
+  const { data: imageFolder } = useQuery(imageFolderQueryOptions(project, selectedCompanyFolder))
 
-  const { data: companyFolderList, isLoading: isLoadingCompanyFolderList } = useQuery({
-    queryKey: ['company-folder-list', project],
-    queryFn: () => window.api.project.getCompanyFolderList(project!),
-    enabled: !!project
-  })
+  const { data: companyConfig, refetch: refetchCompanyConfig } = useQuery(
+    companyConfigQueryOptions(project, selectedCompanyFolder)
+  )
 
-  const { data: favIcon } = useQuery({
-    queryKey: ['fav-icon-by-company-folder', project, selectedCompanyFolder],
-    queryFn: () => window.api.project.getFavIconByCompanyFolder(selectedCompanyFolder!),
-    enabled: !!project && !!selectedCompanyFolder
-  })
+  const { data: checkResult, refetch: checkImages } = useQuery(
+    checkImagesQueryOptions(project, selectedCompanyFolder, newImagePaths)
+  )
 
-  const { data: imageFolder } = useQuery({
-    queryKey: ['image-folder-by-company-folder', project, selectedCompanyFolder],
-    queryFn: () => window.api.project.getImageFolderByCompanyFolder(selectedCompanyFolder!),
-    enabled: !!project && !!selectedCompanyFolder
-  })
-
-  const { data: companyConfig, refetch: refetchCompanyConfig } = useQuery({
-    queryKey: ['company-config-by-company-folder', project, selectedCompanyFolder],
-    queryFn: () => window.api.project.getCompanyConfigByCompanyFolder(selectedCompanyFolder!),
-    refetchInterval: 1000,
-    enabled: !!project && !!selectedCompanyFolder
-  })
-
-  const { data: checkResult, refetch: checkImages } = useQuery({
-    queryKey: ['check-images-match', project, selectedCompanyFolder, newImagePaths],
-    queryFn: () =>
-      window.api.image.checkImagesMatch({
-        companyFolder: selectedCompanyFolder!,
-        newImagePaths
-      }),
-    enabled: !!project && !!selectedCompanyFolder && !!newImagePaths.length
-  })
-
-  const { data: activeCompanyCode } = useQuery({
-    queryKey: ['activeCompanyCode', project],
-    queryFn: () =>
-      window.api.project.getActiveCompanyCode(
-        project!.configPath!,
-        companyFolderList!.map((c) => c.name)
-      ),
-    enabled: !!project?.configPath && !!companyFolderList?.length
-  })
+  const { data: activeCompanyCode } = useQuery(
+    activeCompanyCodeQueryOptions(project, companyFolderList?.map((company) => company.name) ?? [])
+  )
 
   const { mutateAsync: switchCompanyConfig } = useMutation({
     mutationKey: ['switchConfig', project, selectedCompanyFolder],
     mutationFn: () =>
       window.api.project.switchCompanyConfig(project!.configPath!, selectedCompanyFolder!.name!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activeCompanyCode'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeCompanyCodeAll })
     }
   })
 
@@ -86,30 +70,27 @@ export const useChangeImg = () => {
   }
 
   const fixImageFileNames = async () => {
-    const imagePairs: ImagePathPair[] =
-      checkResult?.results.map((p) => ({ newPath: p.newPath, oldPath: p.oldPath })) || []
+    const imagePairs = toImagePairs(checkResult?.results)
     const result = await window.api.image.fixImageFileNames(imagePairs)
 
     if (!result) return
-    setNewImagePaths(result.map((p) => p.newPath))
+    setNewImagePaths(result.map((pair) => pair.newPath))
   }
 
   const fixImageFileSizes = async () => {
-    const imagePairs: ImagePathPair[] =
-      checkResult?.results.map((p) => ({ newPath: p.newPath, oldPath: p.oldPath })) || []
+    const imagePairs = toImagePairs(checkResult?.results)
     const result = await window.api.image.compressImages(imagePairs)
 
     if (!result) return
-    queryClient.invalidateQueries({ queryKey: ['check-images-match'] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.checkImagesAll })
   }
 
   const fixImageFileFormats = async () => {
-    const imagePairs: ImagePathPair[] =
-      checkResult?.results.map((p) => ({ newPath: p.newPath, oldPath: p.oldPath })) || []
+    const imagePairs = toImagePairs(checkResult?.results)
     const result = await window.api.image.convertImages(imagePairs)
 
     if (!result) return
-    setNewImagePaths(result.map((p) => p.newPath))
+    setNewImagePaths(result.map((pair) => pair.newPath))
   }
 
   const [fixLoading, setFixLoading] = useState(false)
@@ -136,16 +117,15 @@ export const useChangeImg = () => {
   const replaceImages = async () => {
     setReplaceImagesLoading(true)
     try {
-      const imagePairs: ImagePathPair[] =
-        checkResult?.results.map((p) => ({ newPath: p.newPath, oldPath: p.oldPath })) || []
+      const imagePairs = toImagePairs(checkResult?.results)
       const result = await window.api.image.replaceImages(imagePairs)
 
       if (!result) return
-      setNewImagePaths(result.map((p) => p.newPath))
+      setNewImagePaths(result.map((pair) => pair.newPath))
     } finally {
       setReplaceImagesLoading(false)
-      queryClient.invalidateQueries({ queryKey: ['git-info'] })
-      queryClient.invalidateQueries({ queryKey: ['git-image-paths'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.gitInfoAll })
+      queryClient.invalidateQueries({ queryKey: queryKeys.gitImagePathsAll })
     }
   }
 
@@ -153,7 +133,7 @@ export const useChangeImg = () => {
     selectedProject: project,
     selectProject,
     selectedCompanyFolder,
-    selectCompanyFolder: setSelectedCompanyFolder,
+    selectCompanyFolder,
     companyFolderList,
     isLoadingCompanyFolderList,
     favIcon,

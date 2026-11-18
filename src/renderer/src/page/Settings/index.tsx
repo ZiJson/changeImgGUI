@@ -28,7 +28,7 @@ import { Spinner } from '@renderer/components/ui/spinner'
 import { useProjects } from '@renderer/hooks/useProjects'
 import { useSetting } from '@renderer/hooks/useSetting'
 import { IconChevronDown, IconFolderOpen } from '@tabler/icons-react'
-import { ProjectInfo } from 'src/main/type/settings'
+import type { ProjectInfo } from 'src/shared/settings'
 
 const Settings = () => {
   const { projects, addNewProject, deleteProject, isLoading } = useProjects()

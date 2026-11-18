@@ -1,4 +1,4 @@
-import { CompanyConfig, CompanyFolder, ProjectInfo } from '../type/settings'
+import type { CompanyConfig, CompanyFolder, ProjectInfo } from '../../shared/settings'
 import fs from 'node:fs/promises'
 import * as settingService from './setting.service'
 import path from 'node:path'
