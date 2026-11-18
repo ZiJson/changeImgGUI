@@ -27,25 +27,47 @@ import {
 } from '@renderer/components/ui/attachment'
 import { getNameFromPath } from '@renderer/lib/tool'
 import { Separator } from '@renderer/components/ui/separator'
+import { Skeleton } from '@renderer/components/ui/skeleton'
 import { IconArrowLeftBar } from '@tabler/icons-react'
 import type { GitImageInfo } from 'src/shared/git'
 
 export const GitDiffCard = ({ project }: { project: ProjectInfo | null }) => {
-  const { gitStatus, repoInfo } = useGitDiff(project)
+  const { gitStatus, repoInfo, isLoadingGitStatus, isLoadingRepoInfo } = useGitDiff(project)
   return (
     <Card size="sm">
       <CardHeader>
         <CardTitle>Git Diff</CardTitle>
-        <CardDescription>根目錄：{repoInfo?.root}</CardDescription>
-        <CardDescription>當前分支：{gitStatus?.current}</CardDescription>
+        <CardDescription>
+          根目錄：
+          {isLoadingRepoInfo ? (
+            <Skeleton className="inline-block h-4 w-40 align-middle" />
+          ) : (
+            repoInfo?.root
+          )}
+        </CardDescription>
+        <CardDescription>
+          當前分支：
+          {isLoadingGitStatus ? (
+            <Skeleton className="inline-block h-4 w-24 align-middle" />
+          ) : (
+            gitStatus?.current
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {Object.entries(gitStatus || {}).map(([key, value]) => {
-          if (!Array.isArray(value)) {
-            return null
-          }
-          return <DiffList key={key} diffs={value} keyName={key} project={project} />
-        })}
+        {isLoadingGitStatus ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : (
+          Object.entries(gitStatus || {}).map(([key, value]) => {
+            if (!Array.isArray(value)) {
+              return null
+            }
+            return <DiffList key={key} diffs={value} keyName={key} project={project} />
+          })
+        )}
       </CardContent>
       <CardFooter>
         <CardDescription className="flex flex-col gap-1 text-xs">
@@ -102,7 +124,7 @@ const DiffImage = ({ project, imagePath }: { project: ProjectInfo | null; imageP
   const { ref, inView } = useInView({
     triggerOnce: true
   })
-  const { data: gitImagePaths } = useGitImagePaths(project, imagePath, inView)
+  const { data: gitImagePaths, isLoading } = useGitImagePaths(project, imagePath, inView)
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} bytes`
@@ -135,7 +157,11 @@ const DiffImage = ({ project, imagePath }: { project: ProjectInfo | null; imageP
       <div className="bg-muted flex h-full w-full items-center gap-6 rounded-md">
         <Attachment orientation="vertical" className="w-fit!">
           <AttachmentMedia className="aspect-auto min-w-40">
-            <LocalImg src={gitImagePaths?.old.path} alt="diff" className="h-40 object-cover" />
+            {isLoading ? (
+              <Skeleton className="h-40 w-40" />
+            ) : (
+              <LocalImg src={gitImagePaths?.old.path} alt="diff" className="h-40 object-cover" />
+            )}
           </AttachmentMedia>
           <AttachmentContent>
             <AttachmentTitle>{getNameFromPath(imagePath)}</AttachmentTitle>
@@ -149,7 +175,15 @@ const DiffImage = ({ project, imagePath }: { project: ProjectInfo | null; imageP
         </div>
         <Attachment orientation="vertical" className="w-fit!">
           <AttachmentMedia className="aspect-auto min-w-40">
-            <LocalImg src={gitImagePaths?.current.path} alt="diff" className="h-40 object-cover" />
+            {isLoading ? (
+              <Skeleton className="h-40 w-40" />
+            ) : (
+              <LocalImg
+                src={gitImagePaths?.current.path}
+                alt="diff"
+                className="h-40 object-cover"
+              />
+            )}
           </AttachmentMedia>
           <AttachmentContent>
             <AttachmentTitle>{getNameFromPath(imagePath)}</AttachmentTitle>

@@ -1,51 +1,64 @@
 import { getNameFromPath } from '@renderer/lib/tool'
 import { projectsQueryOptions, queryKeys } from '@renderer/lib/queries'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { ProjectInfo } from 'src/shared/settings'
 
 export const useProjects = (curProjects?: ProjectInfo) => {
   const queryClient = useQueryClient()
-  const { data, isFetching: loading_1 } = useQuery(projectsQueryOptions)
+  const { data, isLoading: isProjectsLoading } = useQuery(projectsQueryOptions)
 
-  const { mutateAsync: add, isPending: loading_2 } = useMutation({
+  const { mutateAsync: add, isPending: isAdding } = useMutation({
     mutationFn: window.api.project.addNewProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 
-  const { mutateAsync: update, isPending: loading_3 } = useMutation({
+  const { mutateAsync: update, isPending: isUpdating } = useMutation({
     mutationFn: window.api.project.updateProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 
-  const { mutateAsync: del, isPending: loading_4 } = useMutation({
+  const { mutateAsync: del, isPending: isDeleting } = useMutation({
     mutationFn: window.api.project.deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
     }
   })
 
-  const { mutateAsync: getCompanyFolderList, isPending: loading_5 } = useMutation({
+  const { mutateAsync: getCompanyFolderList, isPending: isLoadingCompanyFolders } = useMutation({
     mutationFn: window.api.project.getCompanyFolderList
   })
 
-  const addNewProject = useCallback(async () => {
-    const projectPath = await window.api.selectDirectory()
+  const [isPickingProject, setIsPickingProject] = useState(false)
 
-    if (projectPath) {
-      const project: ProjectInfo = {
+  const pickNewProject = useCallback(async (): Promise<ProjectInfo | null> => {
+    setIsPickingProject(true)
+    try {
+      const projectPath = await window.api.selectDirectory()
+
+      if (!projectPath) return null
+
+      return {
         name: getNameFromPath(projectPath),
         path: projectPath,
         description: ''
       }
-
-      await add(project)
+    } finally {
+      setIsPickingProject(false)
     }
-  }, [add])
+  }, [])
+
+  const createProject = useCallback(
+    async (project: ProjectInfo) => {
+      const name = project.name.trim() || getNameFromPath(project.path)
+      await add({ ...project, name })
+    },
+    [add]
+  )
 
   const setCompanyListPath = useCallback(
     async (project?: ProjectInfo) => {
@@ -93,8 +106,14 @@ export const useProjects = (curProjects?: ProjectInfo) => {
 
   return {
     projects: data || [],
-    isLoading: loading_1 || loading_2 || loading_3 || loading_4 || loading_5,
-    addNewProject,
+    isProjectsLoading,
+    isAdding,
+    isUpdating,
+    isDeleting,
+    isPickingProject,
+    isLoadingCompanyFolders,
+    pickNewProject,
+    createProject,
     deleteProject,
     setCompanyListPath,
     getCompanyFolderList,
