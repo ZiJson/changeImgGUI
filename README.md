@@ -1,40 +1,84 @@
 # 盤口工具
 
-解決盤口換圖 圖片命名/壓縮/轉檔等繁瑣操作
+[English](README.md) · [中文](README.zh-TW.md)
 
-## 設定
+## Purpose
 
-<img width="672" height="324" alt="image" src="https://github.com/user-attachments/assets/83fe29d1-dae0-4ce5-ae79-4aa88ef04ad7" />
+盤口工具 is a Windows desktop app for swapping images in a company web project. It matches new files to the images already in a company folder, fixes the name, format, or size when needed, and copies them into place. Commit, and running or building that project, stay in your editor.
 
-- 選取web專案(repo root) 以及盤口資料夾(companyList)
-- 可選取wsl上的專案，如果平常用wsl開發的話
+## Features
 
-# 當前功能
+### Add a project
 
-- 盤口更換圖片
+Open 設定 and click 新增. Choose the web project folder. The app keeps the project and looks for `companyList` and a project config file (`multipage.project*` or `index*`). A blue mark means `companyList` was found. Only those projects can be selected on the image page.
 
-## 盤口更換圖片
+On the same page, Terminal chooses `bash` or `wsl`. A project opened from a WSL path uses that distro's Git.
 
-此功能只輔助圖片操作並替換圖片，不進行任何git操作與專案dev/build
+![Settings with a saved project and the terminal type](./docs/assets/settings.png)
 
-請配合平常IDE操作
+### Choose a company folder
 
-### 操作方式：
+Open 盤口更換圖片, select the project, then select a company folder. The page lists the favicon, the static image directory, and the company config. The config preview is read-only. 開啟並編輯 opens that file for you to change in an editor.
 
-1. 選取專案
-<img width="647" height="124" alt="image" src="https://github.com/user-attachments/assets/aa28865e-6827-4d2d-bd30-84e89d3942d9" />
+![Company folder acme with its favicon, image directory, and config preview](./docs/assets/replace-images.png)
 
-2. 選擇盤口
-<img width="627" height="91" alt="image" src="https://github.com/user-attachments/assets/9cb89c5f-2bdb-465a-9ac3-8d48a52e7851" />
+### Import, check, and replace images
 
-3. 匯入替換圖片
-<img width="694" height="808" alt="image" src="https://github.com/user-attachments/assets/12cbf27b-c343-4906-b868-7396f94ad7a9" />
+Click 選取圖片 and choose the new files. Each file is matched to an existing image by name. The checks are filename, extension, aspect ratio, and whether the new file is within 50% of the old file's size. 修正 renames, converts, or compresses when that check failed. Aspect ratio has no automatic fix.
 
-4. 修正圖片 名稱/轉檔/壓縮
-<img width="678" height="300" alt="image" src="https://github.com/user-attachments/assets/e28777c9-52ab-417b-bcb1-7eaa9b6b7bac" />
+替換圖片 stays off until every imported file has a match. Replace only copies the files. It does not commit, and it does not start or build the web project.
 
-5. 替換圖片，取代專案內盤口圖片
-<img width="685" height="197" alt="image" src="https://github.com/user-attachments/assets/74fe6391-d8c7-4fff-8d72-730266be4d61" />
+The screenshot above shows `logo.png` matched `1/1`, with all four checks passing and 替換圖片 available.
 
-6. diff詳情確認(負責確認圖片預覽大小尺寸差異)
-<img width="678" height="364" alt="image" src="https://github.com/user-attachments/assets/56b25c5e-6621-4eb1-8a6a-ae18908f7cf4" />
+### Switch the company the project runs
+
+The 測試 card shows the project config and the company that is active now. 切換 updates that config so the selected company is the one in use. Afterward, start or build the project from the terminal or your editor. This app does not do that for you.
+
+Switching only works when that config has exactly one active declaration and exactly one commented declaration for the company, and the file exports a variable with `module.exports` or `export default`.
+
+![The switch control above the Git diff](./docs/assets/git-diff.png)
+
+### Review the Git diff
+
+Git Diff shows the repo root, the current branch, and how many files are modified, staged, added, deleted, renamed, or in conflict. Open a changed image to compare the new file with the copy from Git. The card is a preview of size and dimensions. It does not commit.
+
+The same screenshot shows one modified file after `logo.png` was replaced.
+
+### Use the terminal
+
+The terminal button at the bottom of the sidebar opens a shell in the app. It uses the type selected in 設定. On Windows, `wsl` starts `wsl.exe`. The shell is for running the web project yourself after a switch or a replace.
+
+![The in-app terminal prompt](./docs/assets/terminal.png)
+
+## Getting started
+
+Download the Windows installer from the [latest release](https://github.com/ZiJson/changeImgGUI/releases/latest). The current file is [changeimggui-1.1.1-setup.exe](https://github.com/ZiJson/changeImgGUI/releases/download/v1.1.1/changeimggui-1.1.1-setup.exe).
+
+Run `setup.exe`. The installer adds a desktop shortcut named 盤口工具. Open the app from that shortcut. You do not start it from a terminal.
+
+This installer was not run in the session that captured the screenshots above. Those screenshots are from the same app, version 1.1.1.
+
+To change this app itself: `pnpm install`, then `pnpm dev`. `pnpm release:win` publishes a new `setup.exe` and needs `GH_TOKEN` or `GITHUB_TOKEN`.
+
+## Architecture
+
+The window is the React UI. Actions go to the Electron process, which updates the project files and reads Git. Errors from that work are listed in Error Logs.
+
+```mermaid
+flowchart LR
+  User --> Window["盤口工具"]
+  Window --> Main["Electron process"]
+  Main --> Files["Company images and config"]
+  Main --> Git["Git or WSL Git"]
+  Main -->|errors| Window
+```
+
+## Repository structure
+
+```text
+src/main/        Electron process that edits files and reads Git
+src/preload/     Bridge the window uses
+src/renderer/    React UI, including 盤口更換圖片 and 設定
+src/shared/      Types shared by the UI and the Electron process
+docs/assets/     Screenshots used above
+```
