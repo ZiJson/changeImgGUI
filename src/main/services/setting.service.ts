@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { AppSettings, RevealMode } from '../../shared/settings'
 import { app, dialog, shell } from 'electron'
+import { errorMessage, isEnoent, serviceError } from './service-error'
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json')
 export const tempDir = path.join(app.getPath('temp'), 'changeImgGUI')
@@ -60,33 +61,72 @@ export const selectImages = async (defaultPath?: string): Promise<string[] | nul
 }
 
 export const getSettings = async (): Promise<AppSettings> => {
+  let content: string
+
   try {
-    const content = await fs.readFile(settingsPath, 'utf-8')
-    return { ...defaultSettings, ...JSON.parse(content) }
-  } catch {
-    return defaultSettings
+    content = await fs.readFile(settingsPath, 'utf-8')
+  } catch (error) {
+    if (isEnoent(error)) return defaultSettings
+    throw serviceError(
+      `Failed to read settings file: ${settingsPath}. ${errorMessage(error)}`,
+      error
+    )
+  }
+
+  try {
+    return { ...defaultSettings, ...(JSON.parse(content) as Partial<AppSettings>) }
+  } catch (error) {
+    throw serviceError(`Invalid settings file: ${settingsPath}. ${errorMessage(error)}`, error)
   }
 }
 
 export const saveSettings = async (settings: AppSettings): Promise<void> => {
-  await fs.mkdir(path.dirname(settingsPath), {
-    recursive: true
-  })
+  try {
+    await fs.mkdir(path.dirname(settingsPath), {
+      recursive: true
+    })
 
-  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8')
+    await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8')
+  } catch (error) {
+    throw serviceError(
+      `Failed to save settings file: ${settingsPath}. ${errorMessage(error)}`,
+      error
+    )
+  }
 }
 
 export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
-  // 清空暫存資料夾
-  await fs.rm(tempDir, { recursive: true, force: true })
-  await fs.mkdir(tempDir, { recursive: true })
+  try {
+    await fs.rm(tempDir, { recursive: true, force: true })
+    await fs.mkdir(tempDir, { recursive: true })
+  } catch (error) {
+    throw serviceError(
+      `Failed to prepare the image temp directory: ${tempDir}. ${errorMessage(error)}`,
+      error
+    )
+  }
 
-  // 複製圖片並回傳暫存路徑
+  const usedNames = new Set<string>()
+
   return Promise.all(
     paths.map(async (sourcePath) => {
-      const targetPath = path.join(tempDir, path.basename(sourcePath))
+      const baseName = path.basename(sourcePath)
 
-      await fs.copyFile(sourcePath, targetPath)
+      if (usedNames.has(baseName)) {
+        throw new Error(`Duplicate temp image file name: ${baseName}`)
+      }
+
+      usedNames.add(baseName)
+      const targetPath = path.join(tempDir, baseName)
+
+      try {
+        await fs.copyFile(sourcePath, targetPath)
+      } catch (error) {
+        throw serviceError(
+          `Failed to copy image to the temp directory: ${sourcePath}. ${errorMessage(error)}`,
+          error
+        )
+      }
 
       return targetPath
     })
@@ -96,20 +136,19 @@ export const copyImagesToTemp = async (paths: string[]): Promise<string[]> => {
 export const revealInFileExplorer = async (path: string, mode: RevealMode = 'select') => {
   try {
     await fs.access(path)
-
-    if (mode === 'open') {
-      const error = await shell.openPath(path)
-
-      if (error) {
-        throw new Error(error)
-      }
-    } else {
-      shell.showItemInFolder(path)
-    }
-
-    return true
   } catch (error) {
-    console.error('Failed to reveal path:', error)
-    return false
+    throw serviceError(`Path not found: ${path}. ${errorMessage(error)}`, error)
   }
+
+  if (mode === 'open') {
+    const openError = await shell.openPath(path)
+
+    if (openError) {
+      throw new Error(`Failed to open path: ${path}. ${openError}`)
+    }
+  } else {
+    shell.showItemInFolder(path)
+  }
+
+  return true
 }

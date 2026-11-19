@@ -12,6 +12,7 @@ import type {
   ImageMetadata,
   ImagePathPair
 } from '../../shared/image'
+import { errorMessage, serviceError } from './service-error'
 
 const IMAGE_EXTENSIONS = new Set(['.webp', '.png', '.jpg', '.jpeg'])
 
@@ -28,11 +29,7 @@ const createEmptyChecks = (): ImageChecks => ({
   sizeDifferenceAcceptable: null
 })
 
-/**
- * 讀取圖片 metadata。
- * 不支援或損壞的圖片會回傳 null。
- */
-const getImageMetadata = async (imagePath: string): Promise<ImageMetadata | null> => {
+const getImageMetadata = async (imagePath: string): Promise<ImageMetadata> => {
   try {
     const [metadata, stat] = await Promise.all([sharp(imagePath).metadata(), fs.stat(imagePath)])
 
@@ -42,7 +39,7 @@ const getImageMetadata = async (imagePath: string): Promise<ImageMetadata | null
       !Number.isFinite(metadata.width) ||
       !Number.isFinite(metadata.height)
     ) {
-      return null
+      throw new Error(`Image is missing width or height: ${imagePath}`)
     }
 
     return {
@@ -50,8 +47,12 @@ const getImageMetadata = async (imagePath: string): Promise<ImageMetadata | null
       height: metadata.height,
       size: stat.size
     }
-  } catch {
-    return null
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Image is missing width or height:')) {
+      throw error
+    }
+
+    throw serviceError(`Failed to read image metadata: ${imagePath}. ${errorMessage(error)}`, error)
   }
 }
 
@@ -83,19 +84,24 @@ export const checkImagesMatch = async ({
   let oldImagePaths: string[] = []
 
   if (imageFolder) {
+    let entries
+
     try {
-      const entries = await fs.readdir(imageFolder, {
+      entries = await fs.readdir(imageFolder, {
         withFileTypes: true
       })
-
-      oldImagePaths = entries
-        .filter(
-          (entry) => entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
-        )
-        .map((entry) => path.join(imageFolder, entry.name))
-    } catch {
-      oldImagePaths = []
+    } catch (error) {
+      throw serviceError(
+        `Failed to read image directory: ${imageFolder}. ${errorMessage(error)}`,
+        error
+      )
     }
+
+    oldImagePaths = entries
+      .filter(
+        (entry) => entry.isFile() && IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
+      )
+      .map((entry) => path.join(imageFolder, entry.name))
   }
 
   const faviconPath = await getFavIconByCompanyFolder(companyFolder)
@@ -167,20 +173,6 @@ export const checkImagesMatch = async ({
         getImageMetadata(newPath),
         getImageMetadata(oldPath)
       ])
-
-      // 任一圖片無法取得 metadata，就略過長寬比與檔案大小檢查
-      if (!newMetadata || !oldMetadata) {
-        return {
-          newPath,
-          oldPath,
-          checks: {
-            filenameMatches,
-            extensionMatches,
-            aspectRatioMatches: null,
-            sizeDifferenceAcceptable: null
-          }
-        }
-      }
 
       // 用交叉相乘比較，避免浮點數除法的誤差
       const aspectRatioMatches =
@@ -263,14 +255,21 @@ export const fixImageFileNames = async (imagePairs: ImagePathPair[]): Promise<Im
       // 避免覆蓋已存在的檔案
       try {
         await fs.access(renamedPath)
-        throw new Error(`目標檔案已存在：${renamedPath}`)
+        throw new Error(`Target file already exists: ${renamedPath}`)
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith('目標檔案已存在：')) {
+        if (error instanceof Error && error.message.startsWith('Target file already exists:')) {
           throw error
         }
       }
 
-      await fs.rename(newPath, renamedPath)
+      try {
+        await fs.rename(newPath, renamedPath)
+      } catch (error) {
+        throw serviceError(
+          `Failed to rename image: ${newPath} -> ${renamedPath}. ${errorMessage(error)}`,
+          error
+        )
+      }
 
       return {
         newPath: renamedPath,
@@ -293,8 +292,7 @@ export const compressImages = async (imagePairs: ImagePathPair[]): Promise<Image
       }
 
       if (!SUPPORTED_FORMATS.has(newExtension)) {
-        return
-        throw new Error(`不支援的圖片格式：${newExtension}`)
+        throw new Error(`Unsupported image format: ${newExtension} (${newPath})`)
       }
 
       const [newStat, oldStat] = await Promise.all([fs.stat(newPath), fs.stat(oldPath)])
@@ -342,7 +340,7 @@ export const compressImages = async (imagePairs: ImagePathPair[]): Promise<Image
         await fs.rename(tempPath, newPath)
       } catch (error) {
         await fs.rm(tempPath, { force: true })
-        throw error
+        throw serviceError(`Failed to compress image: ${newPath}. ${errorMessage(error)}`, error)
       }
     })
   )
@@ -359,8 +357,7 @@ export const convertImages = async (imagePairs: ImagePathPair[]): Promise<ImageP
       const targetExtension = path.extname(oldPath).toLowerCase()
 
       if (!SUPPORTED_FORMATS.has(targetExtension)) {
-        return { newPath, oldPath }
-        throw new Error(`不支援的目標圖片格式：${targetExtension}`)
+        throw new Error(`Unsupported target image format: ${targetExtension} (${oldPath})`)
       }
 
       // 目標路徑位於原圖片所在目錄
@@ -397,9 +394,9 @@ export const convertImages = async (imagePairs: ImagePathPair[]): Promise<ImageP
         // 不覆蓋既有檔案
         try {
           await fs.access(targetPath)
-          throw new Error(`目標檔案已存在：${targetPath}`)
+          throw new Error(`Target file already exists: ${targetPath}`)
         } catch (error) {
-          if (error instanceof Error && error.message.startsWith('目標檔案已存在：')) {
+          if (error instanceof Error && error.message.startsWith('Target file already exists:')) {
             throw error
           }
         }
@@ -413,7 +410,15 @@ export const convertImages = async (imagePairs: ImagePathPair[]): Promise<ImageP
         }
       } catch (error) {
         await fs.rm(tempPath, { force: true })
-        throw error
+
+        if (error instanceof Error && error.message.startsWith('Target file already exists:')) {
+          throw error
+        }
+
+        throw serviceError(
+          `Failed to convert image: ${newPath} to ${targetExtension}. ${errorMessage(error)}`,
+          error
+        )
       }
     })
   )
@@ -423,7 +428,12 @@ export const replaceImages = async (imagePairs: ImagePathPair[]): Promise<ImageP
   await Promise.all(
     imagePairs.map(async ({ newPath, oldPath }) => {
       if (!oldPath) return
-      await fs.copyFile(newPath, oldPath)
+
+      try {
+        await fs.copyFile(newPath, oldPath)
+      } catch (error) {
+        throw serviceError(`Failed to replace image: ${oldPath}. ${errorMessage(error)}`, error)
+      }
     })
   )
 
